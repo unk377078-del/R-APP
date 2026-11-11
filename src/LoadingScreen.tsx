@@ -9,10 +9,10 @@ interface LoadingScreenProps {
   onComplete?: () => void;
 }
 
-export function LoadingScreen({ message = 'لحظات ونجهّز طلبك…', onComplete }: LoadingScreenProps) {
-  const sloganPart1 = 'سهل تبقى فرارجي';
-  const sloganPart2 = ' · صعب تبقى الرشيدي';
-  const fullSlogan = sloganPart1 + sloganPart2;
+export function LoadingScreen({ message = 'نجهّز التطبيق…', onComplete }: LoadingScreenProps) {
+  const sloganLine1 = 'سهل تبقى فرارجي';
+  const sloganLine2 = 'صعب تبقى الرشيدي';
+  const fullSlogan = `${sloganLine1} · ${sloganLine2}`;
 
   const [typedCount, setTypedCount] = useState(0);
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -26,13 +26,13 @@ export function LoadingScreen({ message = 'لحظات ونجهّز طلبك…',
       Animated.sequence([
         Animated.timing(pulseAnim, {
           toValue: 1.05,
-          duration: 1100,
+          duration: 1000,
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
         Animated.timing(pulseAnim, {
           toValue: 1,
-          duration: 1100,
+          duration: 1000,
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
@@ -50,11 +50,12 @@ export function LoadingScreen({ message = 'لحظات ونجهّز طلبك…',
 
     // 3. Fast, snappy typewriter effect
     let currentIdx = 0;
+    const totalChars = sloganLine1.length + sloganLine2.length;
     const typeInterval = setInterval(() => {
       currentIdx += 2;
-      setTypedCount(Math.min(currentIdx, fullSlogan.length));
+      setTypedCount(Math.min(currentIdx, totalChars));
 
-      if (currentIdx >= fullSlogan.length) {
+      if (currentIdx >= totalChars) {
         clearInterval(typeInterval);
         // Snappy reading hold (350ms) so the launch feels instant and responsive
         if (completeRef.current) {
@@ -71,64 +72,76 @@ export function LoadingScreen({ message = 'لحظات ونجهّز طلبك…',
     };
   }, []);
 
-  // Split typed text between part 1 (white) and part 2 (golden brand accent)
-  const part1Typed = sloganPart1.slice(0, Math.min(typedCount, sloganPart1.length));
-  const part2Typed =
-    typedCount > sloganPart1.length
-      ? sloganPart2.slice(0, typedCount - sloganPart1.length)
-      : '';
+  // Split typed text between line 1 (white) and line 2 (radiant gold)
+  const part1Typed = sloganLine1.slice(0, Math.min(typedCount, sloganLine1.length));
+  const part2Count = Math.max(0, typedCount - sloganLine1.length);
+  const part2Typed = sloganLine2.slice(0, part2Count);
 
   const progressWidth = progressAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: ['6%', '100%'],
+    outputRange: ['8%', '100%'],
   });
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
       {/* Decorative Brand Background Glow */}
       <View style={styles.glowCircle} pointerEvents="none" />
 
-      {/* Alexandria Heritage Tag */}
-      <View style={styles.heritageTag}>
-        <Txt style={styles.heritageText}>الإسكندرية · منذ ١٩٦٠</Txt>
-      </View>
-
-      {/* Animated Brand Emblem Badge */}
-      <Animated.View style={[styles.logoWrapper, { transform: [{ scale: pulseAnim }] }]}>
-        <View style={styles.logoBorder}>
-          <Image
-            source={images['brand-logo']}
-            resizeMode="cover"
-            style={styles.logoImage}
-          />
+      <View style={styles.contentWrapper}>
+        {/* Alexandria Heritage Tag */}
+        <View style={styles.heritageTag}>
+          <Txt style={styles.heritageText}>الإسكندرية · منذ ١٩٦٠</Txt>
         </View>
-      </Animated.View>
 
-      {/* Brand Title */}
-      <View style={styles.titleRow}>
-        <Txt style={styles.brandTitle}>طيور الرشيدي</Txt>
-        <View style={styles.freshBadge}>
-          <Txt style={styles.freshBadgeText}>فريش</Txt>
-        </View>
-      </View>
+        {/* Animated Brand Emblem Badge */}
+        <Animated.View style={[styles.logoWrapper, { transform: [{ scale: pulseAnim }] }]}>
+          <View style={styles.logoBorder}>
+            <Image
+              source={images['brand-logo']}
+              resizeMode="cover"
+              style={styles.logoImage}
+            />
+          </View>
+        </Animated.View>
 
-      {/* Famous Brand Slogan Container */}
-      <View style={styles.sloganCard}>
-        <View style={styles.sloganRow}>
-          <Txt style={styles.sloganPart1}>{part1Typed}</Txt>
-          {part2Typed ? <Txt style={styles.sloganPart2}>{part2Typed}</Txt> : null}
+        {/* Brand Title */}
+        <View style={styles.titleRow}>
+          <Txt style={styles.brandTitle}>طيور الرشيدي</Txt>
+          <View style={styles.freshBadge}>
+            <Txt style={styles.freshBadgeText}>فريش</Txt>
+          </View>
         </View>
-        <View style={styles.goldDivider} />
-      </View>
 
-      {/* Loading Progress Bar */}
-      <View style={styles.progressContainer}>
-        <View style={styles.progressBarTrack} accessibilityRole="progressbar">
-          <Animated.View style={[styles.progressBarFill, { width: progressWidth }]} />
+        {/* Famous Brand Slogan - Two Perfectly Balanced Centered Lines */}
+        <View style={styles.sloganCard}>
+          <View style={styles.sloganLinesBox}>
+            <Txt style={styles.sloganLine1Text}>
+              {part1Typed || ' '}
+            </Txt>
+            <View style={styles.sloganLine2Row}>
+              {part2Typed ? (
+                <>
+                  <Txt style={styles.sloganStar}>✦ </Txt>
+                  <Txt style={styles.sloganLine2Text}>{part2Typed}</Txt>
+                </>
+              ) : (
+                // Invisible placeholder to prevent height flicker during line 1 typing
+                <Txt style={[styles.sloganLine2Text, { opacity: 0 }]}>✦ {sloganLine2}</Txt>
+              )}
+            </View>
+          </View>
+          <View style={styles.goldDivider} />
         </View>
-        <Txt style={styles.statusMessage}>{message}</Txt>
+
+        {/* Loading Progress Bar */}
+        <View style={styles.progressContainer}>
+          <View style={styles.progressBarTrack} accessibilityRole="progressbar">
+            <Animated.View style={[styles.progressBarFill, { width: progressWidth }]} />
+          </View>
+          <Txt style={styles.statusMessage}>{message}</Txt>
+        </View>
       </View>
     </View>
   );
@@ -137,37 +150,47 @@ export function LoadingScreen({ message = 'لحظات ونجهّز طلبك…',
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    minHeight: 320,
+    width: '100%',
+    height: '100%',
+    minHeight: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 24,
     backgroundColor: '#0A192F', // Official deep Alexandria royal navy
+    paddingHorizontal: 20,
+    paddingVertical: 32,
+  },
+  contentWrapper: {
+    width: '100%',
+    maxWidth: 360,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   glowCircle: {
     position: 'absolute',
-    width: 280,
-    height: 280,
-    borderRadius: 140,
+    width: 320,
+    height: 320,
+    borderRadius: 160,
     backgroundColor: 'rgba(217, 119, 6, 0.08)',
   },
   heritageTag: {
     backgroundColor: 'rgba(255, 255, 255, 0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: 'rgba(255, 255, 255, 0.28)',
     borderRadius: 20,
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     paddingVertical: 5,
     marginBottom: 20,
   },
   heritageText: {
     color: '#E2E8F0',
-    fontSize: 12.5,
+    fontSize: 13,
     fontWeight: '700',
+    textAlign: 'center',
   },
   logoWrapper: {
-    width: 108,
-    height: 108,
-    borderRadius: 54,
+    width: 112,
+    height: 112,
+    borderRadius: 56,
     backgroundColor: '#0E2F65',
     alignItems: 'center',
     justifyContent: 'center',
@@ -179,9 +202,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   logoBorder: {
-    width: 98,
-    height: 98,
-    borderRadius: 49,
+    width: 102,
+    height: 102,
+    borderRadius: 51,
     borderWidth: 2.5,
     borderColor: '#F59E0B',
     padding: 2,
@@ -191,25 +214,25 @@ const styles = StyleSheet.create({
   logoImage: {
     width: '100%',
     height: '100%',
-    borderRadius: 45,
+    borderRadius: 48,
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    marginBottom: 14,
   },
   brandTitle: {
     fontFamily: 'Rubik_700Bold',
-    fontSize: 27,
+    fontSize: 28,
     fontWeight: '900',
     color: '#FFFFFF',
   },
   freshBadge: {
     backgroundColor: '#F59E0B',
     borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 2.5,
+    paddingHorizontal: 9,
+    paddingVertical: 3,
     marginStart: 8,
   },
   freshBadgeText: {
@@ -220,47 +243,60 @@ const styles = StyleSheet.create({
   },
   sloganCard: {
     width: '100%',
-    maxWidth: 360,
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.35)',
-    borderRadius: 20,
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-    marginTop: 4,
-    marginBottom: 22,
-  },
-  sloganRow: {
-    flexDirection: 'row',
+    maxWidth: 320,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 36,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(245, 158, 11, 0.35)',
+    borderRadius: 20,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    marginTop: 4,
+    marginBottom: 26,
   },
-  sloganPart1: {
+  sloganLinesBox: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 74,
+  },
+  sloganLine1Text: {
     fontFamily: 'ArefRuqaa_700Bold',
-    fontSize: 21,
+    fontSize: 22,
     fontWeight: '700',
     color: '#FFFFFF',
     textAlign: 'center',
+    marginBottom: 2,
   },
-  sloganPart2: {
+  sloganLine2Row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sloganStar: {
     fontFamily: 'ArefRuqaa_700Bold',
-    fontSize: 21,
+    fontSize: 17,
+    color: '#F59E0B',
+    marginEnd: 4,
+  },
+  sloganLine2Text: {
+    fontFamily: 'ArefRuqaa_700Bold',
+    fontSize: 23,
     fontWeight: '700',
     color: '#FCD34D', // Radiant gold
     textAlign: 'center',
   },
   goldDivider: {
-    height: 2.5,
-    width: 44,
+    height: 3,
+    width: 48,
     backgroundColor: '#F59E0B',
     borderRadius: 2,
-    marginTop: 6,
+    marginTop: 8,
   },
   progressContainer: {
     width: '100%',
-    maxWidth: 260,
+    maxWidth: 240,
     alignItems: 'center',
   },
   progressBarTrack: {
