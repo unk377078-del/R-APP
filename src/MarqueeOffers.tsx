@@ -277,7 +277,6 @@ export function MarqueeOffers({
             return (
               <Pressable
                 key={`${p.id}-${index}`}
-                accessibilityRole="button"
                 accessibilityLabel={`عرض ${p.name}`}
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
