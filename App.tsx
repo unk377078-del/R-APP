@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React,{useEffect,useRef,useState} from 'react';
 import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
-import { Alert,Animated,Easing,Image,Linking,Modal,Pressable,ScrollView,StatusBar,Text,View,I18nManager,Platform,useColorScheme } from 'react-native';
+import { Alert,Animated,BackHandler,Easing,Image,Linking,Modal,Pressable,ScrollView,StatusBar,Text,View,I18nManager,Platform,useColorScheme } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useFonts } from 'expo-font';
@@ -316,6 +316,44 @@ function AppContent({initialLoadedState}:any){
  const openSearch=()=>{touch();setTab('menu');setModal('none');setSearchFocusRequest(request=>request+1)};
  const closePopup=()=>{if(popup)markNoticeAsRead(popup.id);setPopup(null)};
  const openNotice=(n:AppNotice)=>{if(n?.id)markNoticeAsRead(n.id);closePopup();if(n.target==='orders'){setModal('orders')}else if(n.target==='rewards'){setModal('none');setTab('rewards')}else{setModal('none');setTab('home')}};
+
+ useEffect(() => {
+  const handleBack = () => {
+   if (showNotificationPrompt) {
+    setShowNotificationPrompt(false);
+    return 'handled';
+   }
+   if (popup) {
+    setPopup(null);
+    return 'handled';
+   }
+   if (modal !== 'none') {
+    goBack();
+    return 'handled';
+   }
+   if (tab !== 'home') {
+    setTab('home');
+    return 'handled';
+   }
+   return 'exit';
+  };
+
+  if (typeof window !== 'undefined') {
+   (window as any).handleAndroidBack = handleBack;
+  }
+
+  const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+   const res = handleBack();
+   return res === 'handled';
+  });
+
+  return () => {
+   sub.remove();
+   if (typeof window !== 'undefined') {
+    delete (window as any).handleAndroidBack;
+   }
+  };
+ }, [modal, tab, popup, showNotificationPrompt, modalReturnTo]);
  const checkout=async(data:any)=>{if(state.storeStatus&&!state.storeStatus.isOpen){Alert.alert('المتجر مغلق مؤقتاً',`${state.storeStatus.message}\nموعد الفتح: ${state.storeStatus.nextOpenTime}`);return}if(!isFirebaseConfigured){Alert.alert('الاتصال غير متاح','لا يمكن تأكيد الطلب من دون الاتصال بقاعدة البيانات السحابية.');return}if(!auth?.currentUser&&auth){try{await signInAnonymously(auth)}catch(e:any){console.warn('Anonymous checkout sign-in failed',e?.code)}}if(!auth?.currentUser){Alert.alert('تسجيل الدخول مطلوب','لتأكيد طلبك وحفظه في السحابة، يُرجى تسجيل الدخول أو إنشاء حساب جديد.',[{text:'إلغاء',style:'cancel'},{text:'تسجيل حساب',onPress:()=>openAuth('register','cart')}]);return}const items:CartLine[]=state.cart;if(items.some(line=>!state.products.find(p=>p.id===line.productId)?.available)){Alert.alert('منتج نفد','يوجد منتج في السلة أصبح غير متاح. احذفه من السلة ثم أعد تأكيد الطلب.');return}const redeemPoints=data.pointsDiscount&&state.pointValue>0?Math.ceil(data.pointsDiscount/state.pointValue):0;const newPoints=state.registered&&state.loyalty?calculateEarnedPoints(items,state.products,state.earnRate,state.specialEarnRate):0;const { id: nextOrderId, orderNumber: nextOrderNum } = await getNextOrderSequence(state.orders);
     const order={id:nextOrderId,orderNumber:nextOrderNum,total:data.total,subtotal:data.subtotal,discount:data.discount+data.pointsDiscount,pointsUsed:redeemPoints,loyaltyDiscountAmount:data.pointsDiscount,pointsEarned:newPoints,couponCode:data.coupon||'',deliveryFee:0,customerDocumentId:state.registered?auth.currentUser.uid:'',status:'قيد المراجعة والتجهيز',createdAt:Date.now(),customer:data.customer||state.name,phone:data.phone||state.contact,email:state.registered&&state.contact.includes('@')?state.contact.toLowerCase():'',items,address:delivery.includes('استلام')?branch:`${data.address}${data.fullAddress&&data.fullAddress!==data.address?` · ${data.fullAddress}`:''}${data.coords?` · GPS ${data.coords}`:''}`,addressDetails:{zone:data.zone||'',street:data.street||'',building:data.building||'',coords:data.coords||'',fullAddress:data.fullAddress||''},payment:data.payment,schedule:data.schedule,note:data.note};try{await saveOrderToFirestore(order,branch,state.products);setFirebaseStatus('connected')}catch(error){console.warn('Cloud order write failed',error);setFirebaseStatus('error');notify('تعذر تأكيد الطلب سحابياً. لم يتم تفريغ السلة.');Alert.alert('تعذر إرسال الطلب','تعذر تأكيد الطلب عبر الخادم السحابي حالياً. يرجى التحقق من اتصال الإنترنت ثم إعادة المحاولة. تم الاحتفاظ بمحتويات السلة.');return}const notice:AppNotice={id:`n${Date.now()}`,title:'تم استلام طلبك',message:`طلب #${order.id} قيد المراجعة والتجهيز`,kind:'order',createdAt:Date.now(),target:'orders'};setState(x=>({...x,cart:[],orders:[order,...x.orders],points:Math.max(0,x.points-redeemPoints),coupons:x.coupons.map(c=>c.code===data.coupon?{...c,uses:c.uses+1}:c),notices:[notice,...x.notices]}));Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(()=>{});notify(`تم تأكيد طلبك رقم #${order.id}`);
 triggerDeviceNotification({

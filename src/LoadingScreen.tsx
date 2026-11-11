@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, Image, StatusBar, StyleSheet, View } from 'react-native';
 import { C } from './theme';
 import { Txt } from './ui';
@@ -10,29 +10,33 @@ interface LoadingScreenProps {
 }
 
 export function LoadingScreen({ message = 'نجهّز التطبيق…', onComplete }: LoadingScreenProps) {
-  const sloganLine1 = 'سهل تبقى فرارجي';
-  const sloganLine2 = 'صعب تبقى الرشيدي';
-  const fullSlogan = `${sloganLine1} · ${sloganLine2}`;
-
-  const [typedCount, setTypedCount] = useState(0);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
-  const progressAnim = useRef(new Animated.Value(0)).current;
+  const progressAnim = useRef(new Animated.Value(0.1)).current;
   const completeRef = useRef(onComplete);
   completeRef.current = onComplete;
 
   useEffect(() => {
-    // 1. Gentle continuous pulse on Rooster brand emblem
+    // 1. Instant smooth fade-in of the entire screen and slogan (180ms)
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 180,
+      easing: Easing.out(Easing.ease),
+      useNativeDriver: true,
+    }).start();
+
+    // 2. Gentle continuous pulse on Rooster emblem
     const pulseLoop = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
           toValue: 1.05,
-          duration: 1000,
+          duration: 900,
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
         Animated.timing(pulseAnim, {
           toValue: 1,
-          duration: 1000,
+          duration: 900,
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
@@ -40,46 +44,33 @@ export function LoadingScreen({ message = 'نجهّز التطبيق…', onComp
     );
     pulseLoop.start();
 
-    // 2. Smooth progress bar animation
+    // 3. Fast, snappy progress bar animation (380ms)
     Animated.timing(progressAnim, {
       toValue: 1,
-      duration: onComplete ? 650 : 1200,
+      duration: onComplete ? 380 : 800,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: false,
     }).start();
 
-    // 3. Fast, snappy typewriter effect
-    let currentIdx = 0;
-    const totalChars = sloganLine1.length + sloganLine2.length;
-    const typeInterval = setInterval(() => {
-      currentIdx += 2;
-      setTypedCount(Math.min(currentIdx, totalChars));
-
-      if (currentIdx >= totalChars) {
-        clearInterval(typeInterval);
-        // Snappy reading hold (350ms) so the launch feels instant and responsive
-        if (completeRef.current) {
-          setTimeout(() => {
-            completeRef.current?.();
-          }, 350);
-        }
-      }
-    }, 16);
+    // 4. Quick, smooth transition after user clearly sees the slogan (400ms total)
+    if (completeRef.current) {
+      const timer = setTimeout(() => {
+        completeRef.current?.();
+      }, 420);
+      return () => {
+        pulseLoop.stop();
+        clearTimeout(timer);
+      };
+    }
 
     return () => {
       pulseLoop.stop();
-      clearInterval(typeInterval);
     };
   }, []);
 
-  // Split typed text between line 1 (white) and line 2 (radiant gold)
-  const part1Typed = sloganLine1.slice(0, Math.min(typedCount, sloganLine1.length));
-  const part2Count = Math.max(0, typedCount - sloganLine1.length);
-  const part2Typed = sloganLine2.slice(0, part2Count);
-
   const progressWidth = progressAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: ['8%', '100%'],
+    outputRange: ['12%', '100%'],
   });
 
   return (
@@ -89,7 +80,7 @@ export function LoadingScreen({ message = 'نجهّز التطبيق…', onComp
       {/* Decorative Brand Background Glow */}
       <View style={styles.glowCircle} pointerEvents="none" />
 
-      <View style={styles.contentWrapper}>
+      <Animated.View style={[styles.contentWrapper, { opacity: fadeAnim }]}>
         {/* Alexandria Heritage Tag */}
         <View style={styles.heritageTag}>
           <Txt style={styles.heritageText}>الإسكندرية · منذ ١٩٦٠</Txt>
@@ -114,22 +105,13 @@ export function LoadingScreen({ message = 'نجهّز التطبيق…', onComp
           </View>
         </View>
 
-        {/* Famous Brand Slogan - Two Perfectly Balanced Centered Lines */}
+        {/* Famous Brand Slogan - Displayed Completely & Instantly */}
         <View style={styles.sloganCard}>
           <View style={styles.sloganLinesBox}>
-            <Txt style={styles.sloganLine1Text}>
-              {part1Typed || ' '}
-            </Txt>
+            <Txt style={styles.sloganLine1Text}>سهل تبقى فرارجي</Txt>
             <View style={styles.sloganLine2Row}>
-              {part2Typed ? (
-                <>
-                  <Txt style={styles.sloganStar}>✦ </Txt>
-                  <Txt style={styles.sloganLine2Text}>{part2Typed}</Txt>
-                </>
-              ) : (
-                // Invisible placeholder to prevent height flicker during line 1 typing
-                <Txt style={[styles.sloganLine2Text, { opacity: 0 }]}>✦ {sloganLine2}</Txt>
-              )}
+              <Txt style={styles.sloganStar}>✦ </Txt>
+              <Txt style={styles.sloganLine2Text}>صعب تبقى الرشيدي</Txt>
             </View>
           </View>
           <View style={styles.goldDivider} />
@@ -142,7 +124,7 @@ export function LoadingScreen({ message = 'نجهّز التطبيق…', onComp
           </View>
           <Txt style={styles.statusMessage}>{message}</Txt>
         </View>
-      </View>
+      </Animated.View>
     </View>
   );
 }

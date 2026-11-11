@@ -9,7 +9,8 @@ import { images } from './nativeAssets';
 import { FastImage } from './FastImage';
 import { cloudImages, toCdnUrl } from './cloudAssets';
 
-const loginHeroSource = images['story-raw-chicken'] || { uri: toCdnUrl(cloudImages['story-raw-chicken'], 600) };
+// Use instant local bundled asset for zero-latency login screen rendering
+const loginHeroSource = images['hero-chicken'] || require('../assets/android/hero_chicken_banner_1790709457836.jpg');
 
 export function LoginScreen({ onGuest, onLogin, onRegister }: any) {
   const { width, height } = useWindowDimensions();
