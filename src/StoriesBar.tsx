@@ -64,8 +64,24 @@ interface StoriesBarProps {
   activeScheme?: 'light' | 'dark';
 }
 
-function getStoryPillWord(story: any, index: number): string {
-  const full = (String(story?.id || '') + ' ' + String(story?.title || '') + ' ' + String(story?.badge || '') + ' ' + String(story?.description || '')).toLowerCase();
+export function getStoryPillWord(story: any, index: number): string {
+  // 1. Explicit admin title (prioritize whatever title is entered)
+  const explicit = String(story?.title || '').trim();
+  if (explicit) {
+    return explicit;
+  }
+  // 2. Direct badge if available
+  const badge = String(story?.badge || '').trim();
+  if (badge) {
+    return badge;
+  }
+  // 3. Subtitle if short
+  const subtitle = String(story?.subtitle || '').trim();
+  if (subtitle && subtitle.length <= 15) {
+    return subtitle;
+  }
+  // 4. Keyword fallback
+  const full = (String(story?.id || '') + ' ' + String(story?.description || '')).toLowerCase();
   if (/شيش|متبل|تتبيل|marinated/.test(full)) return 'تتبيلات';
   if (/بانيه|صدور|offers|فيليه/.test(full)) return 'بانيه';
   if (/فرع|فروع|إسكندرية|branch/.test(full)) return 'فروعنا';
@@ -73,7 +89,7 @@ function getStoryPillWord(story: any, index: number): string {
   if (/طاز|فراخ|ذبح|fresh/.test(full)) return 'طازة';
   switch (index) {
     case 0:
-      return 'طازة';
+      return 'طازة اليوم';
     case 1:
       return 'تتبيلات';
     case 2:
@@ -209,6 +225,7 @@ function StoryCircleItem({
   const imageSource = getStoryImage(story);
   const isDark = activeScheme === 'dark';
   const pillWord = getStoryPillWord(story, index);
+  const ringColor = story.gradientColors?.[0] || C.action;
 
   const handlePressIn = () => {
     Animated.spring(scale, { toValue: 0.93, speed: 28, bounciness: 4, useNativeDriver: true }).start();
@@ -225,7 +242,7 @@ function StoryCircleItem({
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         onPress={onPress}
-        style={{ alignItems: 'center', minWidth: 72 }}>
+        style={{ alignItems: 'center', width: 80 }}>
         {/* Glowing Instagram-style Story Ring */}
         <View
           style={{
@@ -234,11 +251,11 @@ function StoryCircleItem({
             borderRadius: 35,
             padding: 2.4,
             borderWidth: 2.4,
-            borderColor: C.action,
+            borderColor: ringColor,
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: isDark ? '#141F2E' : '#FFFFFF',
-            shadowColor: C.action,
+            shadowColor: ringColor,
             shadowOffset: { width: 0, height: 3 },
             shadowOpacity: 0.35,
             shadowRadius: 6,
@@ -271,17 +288,18 @@ function StoryCircleItem({
           </View>
         </View>
 
-        {/* Smart One-Word Pill Capsule */}
+        {/* Smart External Title Capsule */}
         <View
           style={[
             {
-              marginTop: 7,
-              paddingHorizontal: 10,
-              paddingVertical: 3.5,
-              borderRadius: 11,
-              backgroundColor: isDark ? 'rgba(30, 41, 59, 0.88)' : 'rgba(255, 255, 255, 0.95)',
+              marginTop: 6,
+              paddingHorizontal: 7,
+              paddingVertical: 3,
+              maxWidth: 80,
+              borderRadius: 12,
+              backgroundColor: isDark ? 'rgba(30, 41, 59, 0.92)' : 'rgba(255, 255, 255, 0.96)',
               borderWidth: 1,
-              borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(226, 232, 240, 0.95)',
+              borderColor: isDark ? 'rgba(255, 255, 255, 0.14)' : 'rgba(226, 232, 240, 0.95)',
               shadowColor: '#000000',
               shadowOffset: { width: 0, height: 1.5 },
               shadowOpacity: isDark ? 0.3 : 0.06,
@@ -832,29 +850,63 @@ function StoryViewerModal({
               paddingBottom: Platform.OS === 'ios' ? 36 : 22,
               zIndex: 30,
             }}>
-            {/* Tag / Badge */}
-            {!!currentStory.badge && (
-              <View
-                style={{
-                  alignSelf: 'flex-end',
-                  backgroundColor: '#E11D48',
-                  paddingHorizontal: 10,
-                  paddingVertical: 3,
-                  borderRadius: 10,
-                  marginBottom: 8,
-                }}>
-                <Txt style={{ color: '#FFFFFF', fontSize: 10.5, fontWeight: '900' }}>
-                  {currentStory.badge}
-                </Txt>
+            {/* Tag / Badge and Title Header */}
+            <View style={{ marginBottom: 6, width: '100%' }}>
+              <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: 4 }}>
+                {!!currentStory.title && (
+                  <Txt
+                    style={{
+                      fontFamily: fontRuqaaBold,
+                      fontSize: 22,
+                      fontWeight: '700',
+                      color: '#FFFFFF',
+                      textAlign: 'right',
+                      textShadowColor: 'rgba(0,0,0,0.85)',
+                      textShadowOffset: { width: 0, height: 1.5 },
+                      textShadowRadius: 4,
+                    }}>
+                    {currentStory.title}
+                  </Txt>
+                )}
+                {!!currentStory.badge && (
+                  <View
+                    style={{
+                      backgroundColor: currentStory.gradientColors?.[0] || '#E11D48',
+                      paddingHorizontal: 10,
+                      paddingVertical: 3,
+                      borderRadius: 10,
+                    }}>
+                    <Txt style={{ color: '#FFFFFF', fontSize: 10.5, fontWeight: '900' }}>
+                      {currentStory.badge}
+                    </Txt>
+                  </View>
+                )}
               </View>
-            )}
+
+              {/* Subtitle if available */}
+              {!!currentStory.subtitle && (
+                <Txt
+                  style={{
+                    color: '#FCD34D',
+                    fontSize: 13,
+                    fontWeight: '800',
+                    textAlign: 'right',
+                    marginBottom: 4,
+                    textShadowColor: 'rgba(0,0,0,0.85)',
+                    textShadowOffset: { width: 0, height: 1 },
+                    textShadowRadius: 3,
+                  }}>
+                  {currentStory.subtitle}
+                </Txt>
+              )}
+            </View>
 
             {/* Natural Arabic Story Description */}
             <Txt
               style={{
                 color: '#F8FAFC',
-                fontSize: 14,
-                lineHeight: 21,
+                fontSize: 13.5,
+                lineHeight: 20,
                 fontWeight: '600',
                 textAlign: 'right',
                 marginBottom: 14,

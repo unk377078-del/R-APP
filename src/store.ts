@@ -19,8 +19,8 @@ export const defaultStoreStatus: StoreStatus = {
 export const defaultStories: AppStory[] = [
   {
     id: 'story-fresh-daily',
-    title: '',
-    subtitle: '',
+    title: 'طازة اليوم',
+    subtitle: 'دواجن وبط فجر اليوم',
     icon: 'flame',
     image: 'story-fresh-chicken',
     imageUrl: 'https://iili.io/n4xOnOx.jpg',
@@ -33,8 +33,8 @@ export const defaultStories: AppStory[] = [
   },
   {
     id: 'story-marinated',
-    title: '',
-    subtitle: '',
+    title: 'تتبيلات الشيف',
+    subtitle: 'شيش وبانيه متبل جاهز',
     icon: 'restaurant',
     image: 'story-shish-tawook',
     imageUrl: 'https://iili.io/n4xvQIf.jpg',
@@ -47,8 +47,8 @@ export const defaultStories: AppStory[] = [
   },
   {
     id: 'story-offers',
-    title: '',
-    subtitle: '',
+    title: 'بانيه التوفير',
+    subtitle: 'صدور مخلية رفيعة',
     icon: 'gift',
     image: 'story-fresh-panee',
     imageUrl: 'https://iili.io/n4x8o21.jpg',
@@ -61,8 +61,8 @@ export const defaultStories: AppStory[] = [
   },
   {
     id: 'story-branches',
-    title: '',
-    subtitle: '',
+    title: 'فروعنا',
+    subtitle: 'كامب شيزار، سموحة، بحري',
     icon: 'location',
     image: 'story-alex-branch',
     imageUrl: 'https://iili.io/n4x8WQ4.jpg',
@@ -75,8 +75,8 @@ export const defaultStories: AppStory[] = [
   },
   {
     id: 'story-quality',
-    title: '',
-    subtitle: '',
+    title: 'بلدي أصيل',
+    subtitle: 'بط فلاحي وحمام بلدي',
     icon: 'shield-checkmark',
     image: 'story-baladi-poultry',
     imageUrl: 'https://iili.io/n4x8ynR.jpg',

@@ -10,7 +10,7 @@ import * as Haptics from 'expo-haptics';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FastImage } from './FastImage';
 import { fetchCloudMediaLibrary, addMediaToCloudLibrary, deleteMediaFromCloudLibrary, CloudMediaItem } from './cloudMedia';
-import { refreshFirestoreData, subscribeOrders, saveShowcaseToFirestore } from './firebaseStore';
+import { refreshFirestoreData, subscribeOrders, saveShowcaseToFirestore, saveStoriesToFirestore } from './firebaseStore';
 import { changeAdminPassword } from './adminAuth';
 import { Button,Chip,Field,ScreenTitle,Txt } from './ui';
 import { birdPrepGroups,birdPrepText } from './preparation';
@@ -1939,6 +1939,7 @@ function StoriesAdminTab({
   const [actionType, setActionType] = useState<'category' | 'promo' | 'branch' | 'info'>('category');
   const [actionValue, setActionValue] = useState('فراخ');
   const [imageUri, setImageUri] = useState('');
+  const [savingCloud, setSavingCloud] = useState(false);
 
   const storyColorThemes: [string, string][] = [
     ['#DC2626', '#F59E0B'],
@@ -1973,12 +1974,15 @@ function StoriesAdminTab({
     setImageUri('');
   };
 
-  const handleSave = () => {
-    if (!title.trim()) return Alert.alert('بيانات ناقصة', 'يرجى كتابة عنوان للستوري.');
+  const handleSave = async () => {
+    if (!title.trim()) {
+      return Alert.alert('بيانات ناقصة', 'يرجى كتابة عنوان الستوري (الاسم الظاهر أسفل الدائرة في الرئيسية).');
+    }
     const selectedTheme = storyColorThemes[colorIndex] || storyColorThemes[0];
 
+    let updated: AppStory[];
     if (editingId) {
-      const updated = stories.map((s) =>
+      updated = stories.map((s) =>
         s.id === editingId
           ? {
               ...s,
@@ -1994,10 +1998,7 @@ function StoriesAdminTab({
             }
           : s
       );
-      setState((curr: AppState) => ({ ...curr, stories: updated }));
-      onStoriesChange?.(updated);
       notify('تم تحديث الستوري بنجاح ⭐');
-      resetForm();
     } else {
       const newStory: AppStory = {
         id: `story-${Date.now()}`,
@@ -2013,29 +2014,97 @@ function StoriesAdminTab({
         active: true,
         createdAt: Date.now(),
       };
-      const updated = [...stories, newStory];
-      setState((curr: AppState) => ({ ...curr, stories: updated }));
-      onStoriesChange?.(updated);
+      updated = [...stories, newStory];
       notify('تمت إضافة الستوري بنجاح ⭐');
-      resetForm();
     }
+
+    setState((curr: AppState) => ({ ...curr, stories: updated }));
+    onStoriesChange?.(updated);
+    try {
+      await saveStoriesToFirestore(updated);
+    } catch {}
+    resetForm();
   };
 
-  const handleToggle = (id: string) => {
+  const handleToggle = async (id: string) => {
     const updated = stories.map((s) => (s.id === id ? { ...s, active: !s.active } : s));
     setState((curr: AppState) => ({ ...curr, stories: updated }));
     onStoriesChange?.(updated);
+    try {
+      await saveStoriesToFirestore(updated);
+    } catch {}
     notify('تم تحديث حالة الظهور');
   };
 
   const handleDelete = (id: string, storyTitle: string) => {
-    confirmAction('حذف الستوري', `هل تريد حذف «${storyTitle}» نهائياً؟`, () => {
+    confirmAction('حذف الستوري', `هل تريد حذف «${storyTitle || 'هذه الستوري'}» نهائياً؟`, async () => {
       const updated = stories.filter((s) => s.id !== id);
       setState((curr: AppState) => ({ ...curr, stories: updated }));
       onStoriesChange?.(updated);
+      try {
+        await saveStoriesToFirestore(updated);
+      } catch {}
       notify('تم حذف الستوري');
       if (editingId === id) resetForm();
     });
+  };
+
+  const handleMoveUp = async (index: number) => {
+    if (index <= 0) return;
+    const next = [...stories];
+    const temp = next[index - 1];
+    next[index - 1] = next[index];
+    next[index] = temp;
+    setState((curr: AppState) => ({ ...curr, stories: next }));
+    onStoriesChange?.(next);
+    try {
+      await saveStoriesToFirestore(next);
+    } catch {}
+    notify('تم تقديم ترتيب الستوري ⬆️');
+  };
+
+  const handleMoveDown = async (index: number) => {
+    if (index >= stories.length - 1) return;
+    const next = [...stories];
+    const temp = next[index + 1];
+    next[index + 1] = next[index];
+    next[index] = temp;
+    setState((curr: AppState) => ({ ...curr, stories: next }));
+    onStoriesChange?.(next);
+    try {
+      await saveStoriesToFirestore(next);
+    } catch {}
+    notify('تم تأخير ترتيب الستوري ⬇️');
+  };
+
+  const handleManualCloudSave = async () => {
+    setSavingCloud(true);
+    try {
+      await saveStoriesToFirestore(stories);
+      onStoriesChange?.(stories);
+      notify('تمت مزامنة جميع الستوريز سحابياً بنجاح 💾');
+      Alert.alert('تم الحفظ السحابي ✅', 'تم حفظ وتحديث جميع الستوريز لكل العملاء على التطبيق فوراً.');
+    } catch (e: any) {
+      Alert.alert('تعذر الحفظ السحابي', e?.message || 'تحقق من اتصال الإنترنت.');
+    } finally {
+      setSavingCloud(false);
+    }
+  };
+
+  const handleResetDefaults = () => {
+    confirmAction(
+      'استعادة الستوريز الأصلية',
+      'هل تريد استعادة قائمة الستوريز الافتراضية الأصلية لطيور الرشيدي مع أسمائها وصورها الأصلية؟',
+      async () => {
+        setState((curr: AppState) => ({ ...curr, stories: defaultStories }));
+        onStoriesChange?.(defaultStories);
+        try {
+          await saveStoriesToFirestore(defaultStories);
+        } catch {}
+        notify('تمت استعادة الستوريز الافتراضية بنجاح 🔄');
+        resetForm();
+      }
+    );
   };
 
   const startEdit = (s: AppStory) => {
@@ -2052,196 +2121,142 @@ function StoriesAdminTab({
     setColorIndex(cIdx >= 0 ? cIdx : 0);
   };
 
+  const activeCount = stories.filter((s) => s.active !== false).length;
+
   return (
     <>
       <ScreenTitle
-        title="إدارة الستوريز وقصص المتجر"
-        subtitle="تحكم بالقصص الترويجية والدوائر الملونة المعروضة أعلى الصفحة الرئيسية للعملاء"
+        title="إدارة الستوريز وقصص المتجر ⭐"
+        subtitle="تحكم بالقصص الترويجية والدوائر الملونة المعروضة أعلى الصفحة الرئيسية للعملاء بكل سهولة وتنظيم"
       />
 
-      <View style={s.card}>
-        <View style={[s.row, { marginBottom: 10 }]}>
+      {/* Top Quick Action Bar */}
+      <View style={[s.card, { backgroundColor: '#F0F9FF', borderColor: '#BAE6FD', padding: 14, marginBottom: 16 }]}>
+        <View style={[s.row, { justifyContent: 'space-between', alignItems: 'center' }]}>
+          <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6 }}>
+            <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: C.green }} />
+            <Txt style={{ fontWeight: '900', color: C.navy, fontSize: 13.5 }}>
+              الستوريز النشطة: {activeCount} من {stories.length}
+            </Txt>
+          </View>
+          <View style={{ flexDirection: 'row-reverse', gap: 8 }}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="حفظ سحابي للستوريز"
+              onPress={handleManualCloudSave}
+              style={{
+                backgroundColor: C.navy,
+                borderRadius: 12,
+                paddingHorizontal: 12,
+                paddingVertical: 7,
+                flexDirection: 'row-reverse',
+                alignItems: 'center',
+                gap: 5,
+              }}>
+              <Ionicons name="cloud-upload" size={15} color="#FFFFFF" />
+              <Txt style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 11.5 }}>
+                {savingCloud ? 'جاري الحفظ...' : 'حفظ سحابي 💾'}
+              </Txt>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="استعادة الافتراضي"
+              onPress={handleResetDefaults}
+              style={{
+                backgroundColor: '#FFFFFF',
+                borderWidth: 1,
+                borderColor: '#CBD5E1',
+                borderRadius: 12,
+                paddingHorizontal: 10,
+                paddingVertical: 7,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+              <Txt style={{ color: C.muted, fontWeight: '800', fontSize: 11 }}>استعادة الافتراضي 🔄</Txt>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+
+      {/* Main Editor Card */}
+      <View style={[s.card, { borderColor: editingId ? C.blue : C.border, borderWidth: editingId ? 2 : 1 }]}>
+        <View style={[s.row, { justifyContent: 'space-between', marginBottom: 12, borderBottomWidth: 1, borderColor: C.line, paddingBottom: 10 }]}>
           {editingId ? (
-            <Pressable onPress={resetForm} style={{ padding: 4 }}>
+            <Pressable onPress={resetForm} style={{ paddingHorizontal: 10, paddingVertical: 4, backgroundColor: '#FEE2E2', borderRadius: 8 }}>
               <Txt style={{ color: C.red, fontWeight: '800', fontSize: 12 }}>إلغاء التعديل ✕</Txt>
             </Pressable>
-          ) : null}
-          <Txt style={{ fontWeight: '900', fontSize: 16, color: C.navy }}>
-            {editingId ? '✏️ تعديل الستوري المحددة' : '✨ إضافة ستوري مميزة جديدة'}
+          ) : (
+            <View style={{ paddingHorizontal: 8, paddingVertical: 3, backgroundColor: '#FEF3C7', borderRadius: 8 }}>
+              <Txt style={{ color: '#92400E', fontWeight: '800', fontSize: 11 }}>ستوري جديدة ✨</Txt>
+            </View>
+          )}
+          <Txt style={{ fontWeight: '900', fontSize: 17, color: editingId ? C.blue : C.navy }}>
+            {editingId ? '✏️ تعديل بيانات الستوري المحددة' : '✨ إضافة ستوري مميزة جديدة'}
           </Txt>
         </View>
 
-        <Field
-          label="عنوان الستوري (يظهر أسفل الدائرة)"
-          value={title}
-          onChangeText={setTitle}
-          placeholder="مثال: طازة اليوم، تتبيلات الشيف، عروض التوفير"
-        />
+        {/* Section 1: Titles & Texts */}
+        <View style={{ marginBottom: 14 }}>
+          <Txt style={{ fontWeight: '900', fontSize: 14, color: C.navy, marginBottom: 8 }}>
+            ١. العناوين والنصوص الخارجية والداخلية
+          </Txt>
 
-        <Field
-          label="الوصف المختصر (سريع وجذاب)"
-          value={subtitle}
-          onChangeText={setSubtitle}
-          placeholder="مثال: ذبح صباحي فجر اليوم، خصم 10% أسبوعي"
-        />
+          <Field
+            label="العنوان الخارجي (الاسم الظاهر أسفل الدائرة في الرئيسية) ⭐"
+            value={title}
+            onChangeText={setTitle}
+            placeholder="مثال: طازة اليوم، تتبيلات الشيف، بانيه التوفير، عروض خاصة"
+          />
+          <Txt style={{ fontSize: 11, color: C.muted, marginTop: -6, marginBottom: 10, textAlign: 'right' }}>
+            💡 هذا هو الاسم الرئيسي الذي يظهر مباشرة أسفل دائرة الستوري لجميع العملاء في الصفحة الرئيسية.
+          </Txt>
 
-        <Field
-          label="الشارة الصغيرة (Badge)"
-          value={badge}
-          onChangeText={setBadge}
-          placeholder="مثال: طازة، جديد، خصم 10%، شيف"
-        />
+          <Field
+            label="العنوان الفرعي (Subtitle - يظهر باللون الذهبي داخل الستوري)"
+            value={subtitle}
+            onChangeText={setSubtitle}
+            placeholder="مثال: ذبح صباحي فجر اليوم، تتبيلة فاخرة جاهزة للشوي"
+          />
 
-        <Field
-          label="التفاصيل الكاملة لشاشة العرض"
-          value={description}
-          onChangeText={setDescription}
-          placeholder="اكتب نبذة شيقة يقرأها العميل عند الضغط على الستوري..."
-        />
+          <Field
+            label="الشارة الصغيرة (Badge - علامة مميزة أعلى الستوري)"
+            value={badge}
+            onChangeText={setBadge}
+            placeholder="مثال: طازة، تتبيلة الشيف، جديد، خصم 10%"
+          />
 
-        <Txt style={{ fontWeight: '800', marginTop: 8, marginBottom: 4 }}>اختر أيقونة الستوري</Txt>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingVertical: 4 }}>
-          {storyIconsList.map((ic) => (
-            <Chip
-              key={ic.name}
-              label={ic.label}
-              selected={icon === ic.name}
-              onPress={() => setIcon(ic.name)}
-            />
-          ))}
-        </ScrollView>
-
-        <Txt style={{ fontWeight: '800', marginTop: 10, marginBottom: 6 }}>اختر طابع وألوان الستوري</Txt>
-        <View style={[s.row, { justifyContent: 'flex-end', gap: 10, marginBottom: 8 }]}>
-          {storyColorThemes.map(([c1, c2], idx) => (
-            <Pressable
-              key={c1}
-              accessibilityRole="button"
-              accessibilityLabel={`لون ${idx + 1}`}
-              onPress={() => setColorIndex(idx)}
-              style={{
-                width: 38,
-                height: 38,
-                borderRadius: 19,
-                backgroundColor: c1,
-                borderWidth: colorIndex === idx ? 3.5 : 1.5,
-                borderColor: colorIndex === idx ? '#1E293B' : '#CBD5E1',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-              <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: c2 }} />
-            </Pressable>
-          ))}
+          <Field
+            label="التفاصيل الكاملة لشاشة العرض (Description)"
+            value={description}
+            onChangeText={setDescription}
+            placeholder="اكتب نبذة شيقة يقرأها العميل عند الضغط على الستوري..."
+          />
         </View>
 
-        <Txt style={{ fontWeight: '800', marginTop: 8, marginBottom: 4 }}>ماذا يحدث عند ضغط زر الستوري؟</Txt>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingVertical: 4 }}>
-          {[
-            { key: 'category', label: 'فتح قسم من القائمة' },
-            { key: 'promo', label: 'كوبون خصم' },
-            { key: 'branch', label: 'عرض الفروع' },
-            { key: 'info', label: 'معلومات عامة' },
-          ].map((act) => (
-            <Chip
-              key={act.key}
-              label={act.label}
-              selected={actionType === act.key}
-              onPress={() => setActionType(act.key as any)}
-            />
-          ))}
-        </ScrollView>
+        {/* Section 2: Story Image with Live Preview */}
+        <View style={{ marginBottom: 16, borderTopWidth: 1, borderColor: C.line, paddingTop: 12 }}>
+          <Txt style={{ fontWeight: '900', fontSize: 14, color: C.navy, marginBottom: 8 }}>
+            ٢. صورة الستوري مع المعاينة المباشرة
+          </Txt>
 
-        {actionType === 'category' ? (
-          <View style={{ marginTop: 8 }}>
-            <Txt style={[s.small, { marginBottom: 4 }]}>اختر القسم المستهدف:</Txt>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-              {['فراخ', 'متبلات', 'بط', 'أجزاء دواجن', 'حمام وسمان', 'رومي', 'أخرى وأرانب'].map((cat) => (
-                <Chip
-                  key={cat}
-                  label={cat}
-                  selected={actionValue === cat}
-                  onPress={() => setActionValue(cat)}
-                />
-              ))}
-            </ScrollView>
-          </View>
-        ) : actionType === 'promo' ? (
-          <Field
-            label="كود الخصم المراد تفعيله"
-            value={actionValue}
-            onChangeText={setActionValue}
-            placeholder="مثال: SAVE10"
-          />
-        ) : null}
-
-        <Button
-          title="⚡ رفع صورة جديدة للستوري للسحابة فوراً"
-          onPress={async () => {
-            try {
-              const url = await pickAndUploadToCloud(title || 'story', 'story');
-              if (url) {
-                setImageUri(url);
-                Alert.alert('تم الرفع السحابي ⚡', 'تم رفع الصورة للسحابة وربطها بالستوري وحفظها في المكتبة السحابية.');
-              }
-            } catch (e: any) {
-              Alert.alert('تعذر الرفع', e?.message);
-            }
-          }}
-          style={{ backgroundColor: C.action, marginTop: 10, marginBottom: 8 }}
-        />
-
-        <Button
-          title="☁️ اختيار من مكتبة السحابة"
-          secondary
-          onPress={() => openCloudPicker('اختيار صورة للستوري من السحابة', setImageUri)}
-          style={{ marginBottom: 8 }}
-        />
-
-        <Button
-          title="📱 اختيار صورة من الجهاز"
-          secondary
-          onPress={async () => {
-            try {
-              const uri = await pickCompressedImage();
-              if (uri) setImageUri(uri);
-            } catch (error: any) {
-              Alert.alert('تعذر تجهيز الصورة', error?.message || 'اختر صورة أخرى.');
-            }
-          }}
-          style={{ marginBottom: 8 }}
-        />
-
-        <Field
-          label="أو رابط مباشر لصورة الستوري (URL)"
-          value={imageUri}
-          onChangeText={setImageUri}
-          placeholder="https://.../story.jpg"
-        />
-
-        {!!imageUri && (
+          {/* Live Preview Display */}
           <View
             style={{
-              marginVertical: 10,
-              padding: 12,
+              padding: 14,
               backgroundColor: C.surfaceAlt,
-              borderRadius: 16,
+              borderRadius: 18,
               borderWidth: 1,
               borderColor: C.border,
               alignItems: 'center',
+              marginBottom: 12,
             }}>
-            <Txt style={[s.small, { marginBottom: 8, fontWeight: '800', color: C.navy }]}>
-              👁️ معاينة ظهور صورة الستوري:
+            <Txt style={[s.small, { marginBottom: 10, fontWeight: '800', color: C.navy }]}>
+              👁️ معاينة كيف ستظهر الستوري للعميل:
             </Txt>
-            <View
-              style={{
-                flexDirection: 'row-reverse',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 16,
-                width: '100%',
-              }}>
-              {/* Preview Circle */}
-              <View style={{ alignItems: 'center' }}>
+
+            <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: 20, width: '100%' }}>
+              {/* Preview Circle with External Title */}
+              <View style={{ alignItems: 'center', width: 90 }}>
                 <View
                   style={{
                     width: 66,
@@ -2253,121 +2268,436 @@ function StoriesAdminTab({
                     backgroundColor: '#FFFFFF',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    shadowColor: storyColorThemes[colorIndex]?.[0] || C.action,
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 5,
+                    elevation: 4,
                   }}>
-                  <FastImage
-                    source={{ uri: imageUri }}
-                    resizeMode="cover"
-                    style={{ width: '100%', height: '100%', borderRadius: 30 }}
-                  />
+                  {imageUri ? (
+                    <FastImage
+                      source={{ uri: imageUri }}
+                      resizeMode="cover"
+                      style={{ width: '100%', height: '100%', borderRadius: 28 }}
+                    />
+                  ) : (
+                    <Ionicons name={(icon as any) || 'flame'} size={28} color={storyColorThemes[colorIndex]?.[0] || C.action} />
+                  )}
                 </View>
-                <Txt style={{ fontSize: 10, fontWeight: '700', marginTop: 4, color: C.navy }}>في دائرة الرئيسية</Txt>
+                {/* External title pill preview */}
+                <View
+                  style={{
+                    marginTop: 5,
+                    paddingHorizontal: 7,
+                    paddingVertical: 2.5,
+                    borderRadius: 10,
+                    backgroundColor: '#FFFFFF',
+                    borderWidth: 1,
+                    borderColor: '#E2E8F0',
+                    elevation: 1,
+                    maxWidth: 88,
+                  }}>
+                  <Txt numberOfLines={1} style={{ fontSize: 10.5, fontWeight: '900', color: C.navy, textAlign: 'center' }}>
+                    {title.trim() || 'اسم الستوري'}
+                  </Txt>
+                </View>
+                <Txt style={{ fontSize: 9.5, color: C.muted, marginTop: 3 }}>أسفل الدائرة</Txt>
               </View>
 
-              {/* Preview Story Card */}
-              <View style={{ alignItems: 'center', flex: 1, maxWidth: 170 }}>
+              {/* Preview 9:16 Full Story Card */}
+              <View style={{ alignItems: 'center', flex: 1, maxWidth: 160 }}>
                 <View
                   style={{
                     width: '100%',
-                    height: 95,
+                    height: 105,
                     borderRadius: 14,
                     overflow: 'hidden',
                     borderWidth: 1.5,
                     borderColor: 'rgba(0,0,0,0.15)',
-                    backgroundColor: '#000',
+                    backgroundColor: '#0F172A',
+                    justifyContent: 'space-between',
+                    padding: 8,
                   }}>
-                  <FastImage source={{ uri: imageUri }} resizeMode="cover" style={{ width: '100%', height: '100%' }} />
-                  {!!badge && (
-                    <View
-                      style={{
-                        position: 'absolute',
-                        top: 6,
-                        right: 6,
-                        backgroundColor: storyColorThemes[colorIndex]?.[0] || C.action,
-                        paddingHorizontal: 6,
-                        paddingVertical: 2,
-                        borderRadius: 8,
-                      }}>
-                      <Txt style={{ color: '#FFFFFF', fontSize: 8.5, fontWeight: '900' }}>{badge}</Txt>
-                    </View>
-                  )}
+                  {imageUri ? (
+                    <FastImage
+                      source={{ uri: imageUri }}
+                      resizeMode="cover"
+                      style={[StyleSheet.absoluteFill, { width: '100%', height: '100%' }]}
+                    />
+                  ) : null}
+                  <View style={{ alignSelf: 'flex-end', backgroundColor: storyColorThemes[colorIndex]?.[0] || C.action, paddingHorizontal: 6, paddingVertical: 1.5, borderRadius: 6 }}>
+                    <Txt style={{ color: '#FFFFFF', fontSize: 8.5, fontWeight: '900' }}>{badge || 'شارة'}</Txt>
+                  </View>
+                  <View>
+                    <Txt numberOfLines={1} style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '900' }}>
+                      {title.trim() || 'العنوان'}
+                    </Txt>
+                    <Txt numberOfLines={1} style={{ color: '#FCD34D', fontSize: 9, fontWeight: '700' }}>
+                      {subtitle.trim() || 'الوصف المختصر'}
+                    </Txt>
+                  </View>
                 </View>
-                <Txt style={{ fontSize: 10, fontWeight: '700', marginTop: 4, color: C.navy }}>داخل شاشة الستوري</Txt>
+                <Txt style={{ fontSize: 9.5, color: C.muted, marginTop: 3 }}>داخل شاشة العرض</Txt>
               </View>
             </View>
 
-            <Pressable onPress={() => setImageUri('')} style={{ marginTop: 8, paddingVertical: 4 }}>
-              <Txt style={{ color: C.red, fontSize: 11, fontWeight: '700' }}>مسح الصورة المخصصة ✕</Txt>
+            {!!imageUri && (
+              <Pressable onPress={() => setImageUri('')} style={{ marginTop: 8, paddingVertical: 4 }}>
+                <Txt style={{ color: C.red, fontSize: 11, fontWeight: '800' }}>مسح الصورة المخصصة ✕</Txt>
+              </Pressable>
+            )}
+          </View>
+
+          {/* Image Selection Buttons */}
+          <View style={{ flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="رفع صورة للسحابة"
+              onPress={async () => {
+                try {
+                  const url = await pickAndUploadToCloud(title || 'story', 'story');
+                  if (url) {
+                    setImageUri(url);
+                    Alert.alert('تم الرفع السحابي ⚡', 'تم رفع الصورة للسحابة وربطها بالستوري وحفظها بنجاح.');
+                  }
+                } catch (e: any) {
+                  Alert.alert('تعذر الرفع', e?.message);
+                }
+              }}
+              style={{
+                backgroundColor: C.action,
+                borderRadius: 12,
+                paddingHorizontal: 12,
+                paddingVertical: 9,
+                flexDirection: 'row-reverse',
+                alignItems: 'center',
+                gap: 6,
+                flex: 1,
+                minWidth: 130,
+                justifyContent: 'center',
+              }}>
+              <Ionicons name="flash" size={16} color="#FFFFFF" />
+              <Txt style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 12 }}>رفع صورة للسحابة ⚡</Txt>
+            </Pressable>
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="مكتبة السحابة"
+              onPress={() => openCloudPicker('اختيار صورة للستوري من السحابة', setImageUri)}
+              style={{
+                backgroundColor: C.surfaceAlt,
+                borderWidth: 1,
+                borderColor: C.border,
+                borderRadius: 12,
+                paddingHorizontal: 12,
+                paddingVertical: 9,
+                flexDirection: 'row-reverse',
+                alignItems: 'center',
+                gap: 6,
+                flex: 1,
+                minWidth: 130,
+                justifyContent: 'center',
+              }}>
+              <Ionicons name="cloud-outline" size={16} color={C.navy} />
+              <Txt style={{ color: C.navy, fontWeight: '800', fontSize: 12 }}>مكتبة السحابة ☁️</Txt>
+            </Pressable>
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="صورة من الجهاز"
+              onPress={async () => {
+                try {
+                  const uri = await pickCompressedImage();
+                  if (uri) setImageUri(uri);
+                } catch (error: any) {
+                  Alert.alert('تعذر تجهيز الصورة', error?.message || 'اختر صورة أخرى.');
+                }
+              }}
+              style={{
+                backgroundColor: C.surfaceAlt,
+                borderWidth: 1,
+                borderColor: C.border,
+                borderRadius: 12,
+                paddingHorizontal: 12,
+                paddingVertical: 9,
+                flexDirection: 'row-reverse',
+                alignItems: 'center',
+                gap: 6,
+                flex: 1,
+                minWidth: 130,
+                justifyContent: 'center',
+              }}>
+              <Ionicons name="image-outline" size={16} color={C.navy} />
+              <Txt style={{ color: C.navy, fontWeight: '800', fontSize: 12 }}>من الجهاز 📱</Txt>
             </Pressable>
           </View>
-        )}
 
+          <Field
+            label="أو رابط مباشر لصورة الستوري (URL)"
+            value={imageUri}
+            onChangeText={setImageUri}
+            placeholder="https://.../story.jpg"
+          />
+        </View>
+
+        {/* Section 3: Action & Appearance */}
+        <View style={{ marginBottom: 14, borderTopWidth: 1, borderColor: C.line, paddingTop: 12 }}>
+          <Txt style={{ fontWeight: '900', fontSize: 14, color: C.navy, marginBottom: 8 }}>
+            ٣. الإجراء عند الضغط والألوان والأيقونة
+          </Txt>
+
+          <Txt style={[s.small, { fontWeight: '800', marginBottom: 4 }]}>ماذا يحدث عند ضغط العميل على زر الستوري؟</Txt>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingVertical: 4 }}>
+            {[
+              { key: 'category', label: 'فتح قسم من القائمة' },
+              { key: 'promo', label: 'كوبون خصم' },
+              { key: 'branch', label: 'عرض الفروع' },
+              { key: 'info', label: 'معلومات عامة' },
+            ].map((act) => (
+              <Chip
+                key={act.key}
+                label={act.label}
+                selected={actionType === act.key}
+                onPress={() => setActionType(act.key as any)}
+              />
+            ))}
+          </ScrollView>
+
+          {actionType === 'category' ? (
+            <View style={{ marginTop: 8 }}>
+              <Txt style={[s.small, { marginBottom: 4 }]}>اختر القسم المستهدف:</Txt>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+                {['فراخ', 'متبلات', 'بط', 'أجزاء دواجن', 'حمام وسمان', 'رومي', 'أخرى وأرانب'].map((cat) => (
+                  <Chip
+                    key={cat}
+                    label={cat}
+                    selected={actionValue === cat}
+                    onPress={() => setActionValue(cat)}
+                  />
+                ))}
+              </ScrollView>
+            </View>
+          ) : actionType === 'promo' ? (
+            <Field
+              label="كود الخصم المراد تفعيله"
+              value={actionValue}
+              onChangeText={setActionValue}
+              placeholder="مثال: SAVE10"
+            />
+          ) : null}
+
+          <Txt style={[s.small, { fontWeight: '800', marginTop: 10, marginBottom: 6 }]}>طابع ولون دائرة الستوري:</Txt>
+          <View style={[s.row, { justifyContent: 'flex-end', gap: 10, marginBottom: 10 }]}>
+            {storyColorThemes.map(([c1, c2], idx) => (
+              <Pressable
+                key={c1}
+                accessibilityRole="button"
+                accessibilityLabel={`لون ${idx + 1}`}
+                onPress={() => setColorIndex(idx)}
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 19,
+                  backgroundColor: c1,
+                  borderWidth: colorIndex === idx ? 3.5 : 1.5,
+                  borderColor: colorIndex === idx ? '#1E293B' : '#CBD5E1',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: c2 }} />
+              </Pressable>
+            ))}
+          </View>
+
+          <Txt style={[s.small, { fontWeight: '800', marginBottom: 4 }]}>أيقونة الستوري (تظهر إذا لم تكن هناك صورة):</Txt>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingVertical: 4 }}>
+            {storyIconsList.map((ic) => (
+              <Chip
+                key={ic.name}
+                label={ic.label}
+                selected={icon === ic.name}
+                onPress={() => setIcon(ic.name)}
+              />
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* Save Button */}
         <Button
-          title={editingId ? 'حفظ تعديلات الستوري ⭐' : 'إضافة الستوري للرئيسية 🚀'}
+          title={editingId ? 'حفظ تعديلات الستوري وحفظ سحابي 💾' : 'إضافة الستوري للرئيسية وحفظ سحابي 🚀'}
           onPress={handleSave}
-          style={{ backgroundColor: C.action, marginTop: 10 }}
+          style={{ backgroundColor: C.action, marginTop: 8 }}
         />
       </View>
 
-      <Txt style={s.section}>الستوريز الحالية ({stories.length})</Txt>
-      {stories.map((st) => (
-        <View key={st.id} style={s.card}>
-          <View style={[s.row, { justifyContent: 'space-between' }]}>
-            <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 10, flex: 1 }}>
-              <View
-                style={{
-                  width: 52,
-                  height: 52,
-                  borderRadius: 26,
-                  borderWidth: 2.5,
-                  borderColor: st.gradientColors?.[0] || C.action,
-                  backgroundColor: '#FFF7ED',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  overflow: 'hidden',
-                }}>
-                {st.imageUri ? (
-                  <FastImage source={{ uri: st.imageUri }} resizeMode="cover" style={{ width: '100%', height: '100%' }} />
-                ) : (
-                  <Ionicons name={(st.icon as any) || 'flame'} size={24} color={st.gradientColors?.[0] || C.action} />
-                )}
-              </View>
+      {/* Section 4: Current Stories List with Reordering */}
+      <View style={{ marginTop: 22, marginBottom: 8, flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Txt style={{ fontFamily: fontRuqaaBold, fontSize: 20, fontWeight: '700', color: C.navy }}>
+          الستوريز الحالية بالرئيسية ({stories.length})
+        </Txt>
+        <Txt style={{ fontSize: 11, color: C.muted }}>
+          استخدم ⬆️ ⬇️ لإعادة الترتيب
+        </Txt>
+      </View>
 
-              <View style={{ flex: 1, alignItems: 'flex-end' }}>
-                <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6 }}>
-                  <Txt style={{ fontFamily: fontRuqaaBold, fontWeight: '700', fontSize: 16, color: C.navy }}>
-                    {st.title}
-                  </Txt>
-                  {!!st.badge && (
-                    <View
-                      style={{
-                        backgroundColor: st.gradientColors?.[0] || C.action,
-                        borderRadius: 8,
-                        paddingHorizontal: 6,
-                        paddingVertical: 1,
-                      }}>
-                      <Txt style={{ color: '#FFFFFF', fontSize: 9, fontWeight: '900' }}>{st.badge}</Txt>
-                    </View>
+      {stories.map((st, index) => {
+        const isCurrentlyEditing = editingId === st.id;
+        const ringCol = st.gradientColors?.[0] || C.action;
+        return (
+          <View
+            key={st.id}
+            style={[
+              s.card,
+              {
+                borderColor: isCurrentlyEditing ? C.blue : C.border,
+                borderWidth: isCurrentlyEditing ? 2 : 1,
+                backgroundColor: isCurrentlyEditing ? '#F0F9FF' : C.surface,
+                marginBottom: 10,
+              },
+            ]}>
+            <View style={[s.row, { justifyContent: 'space-between', alignItems: 'center' }]}>
+              <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 12, flex: 1 }}>
+                {/* Index badge */}
+                <View
+                  style={{
+                    width: 26,
+                    height: 26,
+                    borderRadius: 13,
+                    backgroundColor: C.surfaceAlt,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderWidth: 1,
+                    borderColor: C.border,
+                  }}>
+                  <Txt style={{ fontSize: 11, fontWeight: '900', color: C.navy }}>#{index + 1}</Txt>
+                </View>
+
+                {/* Thumbnail circle */}
+                <View
+                  style={{
+                    width: 52,
+                    height: 52,
+                    borderRadius: 26,
+                    borderWidth: 2.5,
+                    borderColor: ringCol,
+                    backgroundColor: '#FFF7ED',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    overflow: 'hidden',
+                  }}>
+                  {st.imageUri ? (
+                    <FastImage source={{ uri: st.imageUri }} resizeMode="cover" style={{ width: '100%', height: '100%' }} />
+                  ) : (
+                    <Ionicons name={(st.icon as any) || 'flame'} size={24} color={ringCol} />
                   )}
                 </View>
-                <Txt numberOfLines={1} style={[s.small, { marginTop: 2 }]}>
-                  {st.subtitle || st.description}
-                </Txt>
+
+                {/* Details */}
+                <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                  <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <Txt style={{ fontWeight: '900', fontSize: 16, color: C.navy }}>
+                      {st.title || 'بدون عنوان'}
+                    </Txt>
+                    {!!st.badge && (
+                      <View
+                        style={{
+                          backgroundColor: ringCol,
+                          borderRadius: 8,
+                          paddingHorizontal: 7,
+                          paddingVertical: 1.5,
+                        }}>
+                        <Txt style={{ color: '#FFFFFF', fontSize: 9.5, fontWeight: '900' }}>{st.badge}</Txt>
+                      </View>
+                    )}
+                  </View>
+
+                  <Txt numberOfLines={1} style={[s.small, { marginTop: 2, color: C.muted }]}>
+                    {st.subtitle || st.description}
+                  </Txt>
+
+                  <Txt style={{ fontSize: 10, color: C.blue, fontWeight: '700', marginTop: 3 }}>
+                    العنوان الخارجي: «{st.title || 'بدون عنوان'}»
+                  </Txt>
+                </View>
               </View>
+
+              {/* Visibility Toggle */}
+              <Toggle label={st.active !== false ? 'ظاهر' : 'مخفي'} value={st.active !== false} onChange={() => handleToggle(st.id)} />
             </View>
 
-            <Toggle label={st.active !== false ? 'ظاهر' : 'مخفي'} value={st.active !== false} onChange={() => handleToggle(st.id)} />
-          </View>
+            {/* Actions & Reordering Controls Row */}
+            <View
+              style={[
+                s.row,
+                {
+                  marginTop: 10,
+                  borderTopWidth: 1,
+                  borderColor: C.line,
+                  paddingTop: 8,
+                  justifyContent: 'space-between',
+                },
+              ]}>
+              {/* Order Arrows */}
+              <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6 }}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="تقديم الترتيب للأمام"
+                  disabled={index === 0}
+                  onPress={() => handleMoveUp(index)}
+                  style={{
+                    paddingHorizontal: 8,
+                    paddingVertical: 5,
+                    borderRadius: 8,
+                    backgroundColor: index === 0 ? '#F1F5F9' : C.surfaceAlt,
+                    borderWidth: 1,
+                    borderColor: C.border,
+                    opacity: index === 0 ? 0.4 : 1,
+                  }}>
+                  <Txt style={{ fontSize: 11, fontWeight: '800', color: C.navy }}>⬆️ تقديم</Txt>
+                </Pressable>
 
-          <View style={[s.row, { marginTop: 10, borderTopWidth: 1, borderColor: C.line, paddingTop: 8, justifyContent: 'flex-start', gap: 12 }]}>
-            <Pressable onPress={() => startEdit(st)} style={{ minHeight: 38, justifyContent: 'center' }}>
-              <Txt style={{ color: C.blue, fontWeight: '800' }}>تعديل ✏️</Txt>
-            </Pressable>
-            <Pressable onPress={() => handleDelete(st.id, st.title)} style={{ minHeight: 38, justifyContent: 'center' }}>
-              <Txt style={{ color: C.red, fontWeight: '800' }}>حذف 🗑️</Txt>
-            </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="تأخير الترتيب للخلف"
+                  disabled={index === stories.length - 1}
+                  onPress={() => handleMoveDown(index)}
+                  style={{
+                    paddingHorizontal: 8,
+                    paddingVertical: 5,
+                    borderRadius: 8,
+                    backgroundColor: index === stories.length - 1 ? '#F1F5F9' : C.surfaceAlt,
+                    borderWidth: 1,
+                    borderColor: C.border,
+                    opacity: index === stories.length - 1 ? 0.4 : 1,
+                  }}>
+                  <Txt style={{ fontSize: 11, fontWeight: '800', color: C.navy }}>⬇️ تأخير</Txt>
+                </Pressable>
+              </View>
+
+              {/* Edit and Delete Buttons */}
+              <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 14 }}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="تعديل الستوري"
+                  onPress={() => startEdit(st)}
+                  style={{ minHeight: 36, justifyContent: 'center', paddingHorizontal: 6 }}>
+                  <Txt style={{ color: C.blue, fontWeight: '900', fontSize: 13 }}>
+                    {isCurrentlyEditing ? 'جارٍ التعديل ✏️' : 'تعديل ✏️'}
+                  </Txt>
+                </Pressable>
+
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="حذف الستوري"
+                  onPress={() => handleDelete(st.id, st.title)}
+                  style={{ minHeight: 36, justifyContent: 'center', paddingHorizontal: 6 }}>
+                  <Txt style={{ color: C.red, fontWeight: '800', fontSize: 13 }}>حذف 🗑️</Txt>
+                </Pressable>
+              </View>
+            </View>
           </View>
-        </View>
-      ))}
+        );
+      })}
     </>
   );
 }
