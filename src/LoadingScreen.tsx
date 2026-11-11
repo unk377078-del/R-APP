@@ -43,27 +43,27 @@ export function LoadingScreen({ message = 'لحظات ونجهّز طلبك…',
     // 2. Smooth progress bar animation
     Animated.timing(progressAnim, {
       toValue: 1,
-      duration: onComplete ? 1900 : 2500,
+      duration: onComplete ? 650 : 1200,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: false,
     }).start();
 
-    // 3. Smooth, readable typewriter effect
+    // 3. Fast, snappy typewriter effect
     let currentIdx = 0;
     const typeInterval = setInterval(() => {
-      currentIdx += 1;
-      setTypedCount(currentIdx);
+      currentIdx += 2;
+      setTypedCount(Math.min(currentIdx, fullSlogan.length));
 
       if (currentIdx >= fullSlogan.length) {
         clearInterval(typeInterval);
-        // Generous reading hold (950ms) so the customer clearly reads the slogan
+        // Snappy reading hold (350ms) so the launch feels instant and responsive
         if (completeRef.current) {
           setTimeout(() => {
             completeRef.current?.();
-          }, 950);
+          }, 350);
         }
       }
-    }, 32);
+    }, 16);
 
     return () => {
       pulseLoop.stop();

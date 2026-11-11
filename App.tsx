@@ -119,8 +119,8 @@ export default function App(){
 
  useEffect(()=>{
   loadState().then(s=>setLoadedState(s)).catch(()=>setLoadedState(initialState));
-  // Prefetch removed for instant start and zero network congestion
-  const timer=setTimeout(()=>setFontTimeoutPassed(true), 400);
+  // Ultra-fast font timeout for instant launch
+  const timer=setTimeout(()=>setFontTimeoutPassed(true), 150);
   return ()=>clearTimeout(timer);
  },[]);
 
@@ -176,7 +176,6 @@ function AppContent({initialLoadedState}:any){
  useEffect(()=>{if(loaded&&isFirebaseConfigured&&auth?.currentUser&&auth.currentUser.email?.toLowerCase()!==ADMIN_EMAIL)saveState(state).catch(()=>setFirebaseStatus('error'))},[state,loaded,auth?.currentUser?.uid]);
  useEffect(()=>{
   if(!loaded)return;
-  if(allCloudImageUrls&&allCloudImageUrls.length){prefetchImages(allCloudImageUrls).catch(()=>{});}
   const safetyTimer=setTimeout(()=>{
    setState(current=>{
     if(!current.products||!current.products.length){

@@ -9,11 +9,12 @@ export const cloudImages: Record<string, string> = cloudImagesData as Record<str
 export function toCdnUrl(url: string | undefined | null, width = 380, quality = 82): string {
   if (!url || typeof url !== 'string') return '';
   if (!url.startsWith('http')) return url;
-  if (url.includes('images.weserv.nl')) return url;
-  // If it's an iili.io image, accelerate via Cloudflare Edge CDN proxy with WebP conversion
-  if (url.includes('iili.io/')) {
-    const rawPath = url.replace(/^https?:\/\//, '');
-    return `https://images.weserv.nl/?url=${encodeURIComponent(rawPath)}&w=${width}&output=webp&q=${quality}`;
+  // If previously wrapped in weserv, unwrap to direct high-speed Cloudflare iili.io URL
+  if (url.includes('images.weserv.nl')) {
+    const match = url.match(/url=([^&]+)/);
+    if (match && match[1]) {
+      return `https://${decodeURIComponent(match[1])}`;
+    }
   }
   return url;
 }
