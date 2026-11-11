@@ -273,36 +273,48 @@ export function ProductCustomizationSheet({ product, onAdd, initialLine }: any) 
                   <View style={{ flexDirection: 'column', gap: 8 }}>
                     {group.subOptions.map((option: string) => {
                       const chosen = selectedSubOption === option;
+                      const [optLabel, optDesc] = option.split(' — ');
                       return (
                         <Pressable
                           key={option}
                           accessibilityRole="radio"
                           accessibilityState={{ selected: chosen }}
-                          onPress={() => {
-                            setSelectedSubOption(option);
-                            const [label, ...description] = option.split(' — ');
-                            if (description.length) setPrepInfo({ label, description: description.join(' — ') });
-                          }}
+                          onPress={() => setSelectedSubOption(option)}
                           style={{
-                            minHeight: 44,
-                            paddingHorizontal: 13,
+                            minHeight: 46,
+                            paddingHorizontal: 14,
                             paddingVertical: 8,
                             borderRadius: 14,
-                            borderWidth: 1,
+                            borderWidth: 1.5,
                             borderColor: chosen ? C.green : C.border,
                             backgroundColor: chosen ? C.green : C.surfaceAlt,
-                            justifyContent: 'center',
-                            alignItems: 'flex-end',
+                            flexDirection: 'row-reverse',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
                           }}>
-                          <Txt
-                            style={{
-                              fontSize: 12,
-                              fontWeight: chosen ? '900' : '700',
-                              color: chosen ? C.white : C.ink,
-                              textAlign: 'right',
-                            }}>
-                            {option.split(' — ')[0]}
-                          </Txt>
+                          <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                            <Txt
+                              style={{
+                                fontSize: 13,
+                                fontWeight: chosen ? '900' : '700',
+                                color: chosen ? C.white : C.ink,
+                                textAlign: 'right',
+                              }}>
+                              {optLabel}
+                            </Txt>
+                            {!!optDesc && (
+                              <Txt
+                                style={{
+                                  fontSize: 10.5,
+                                  marginTop: 2,
+                                  color: chosen ? 'rgba(255,255,255,0.88)' : C.muted,
+                                  textAlign: 'right',
+                                }}>
+                                {optDesc}
+                              </Txt>
+                            )}
+                          </View>
+                          {chosen && <Ionicons name="checkmark-circle" size={18} color={C.white} style={{ marginStart: 8 }} />}
                         </Pressable>
                       );
                     })}
