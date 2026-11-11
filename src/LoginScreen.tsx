@@ -119,15 +119,27 @@ export function LoginScreen({ onGuest, onLogin, onRegister }: any) {
         <Txt style={{ fontSize: 14.5, color: '#F1F5F9', fontWeight: '700', textAlign: 'center', marginTop: 4 }}>
           طازج كل يوم، وتجهيز على طلبك
         </Txt>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 4 }}>
-          <Txt style={{ fontFamily: 'ArefRuqaa_700Bold', fontSize: 18, fontWeight: '700', color: C.white }}>
+        <View
+          style={{
+            backgroundColor: 'rgba(217, 119, 6, 0.16)',
+            borderWidth: 1.2,
+            borderColor: 'rgba(245, 158, 11, 0.45)',
+            borderRadius: 22,
+            paddingHorizontal: 16,
+            paddingVertical: 6,
+            marginTop: 8,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+          }}>
+          <Txt style={{ fontFamily: 'ArefRuqaa_700Bold', fontSize: 20, fontWeight: '700', color: '#FFFFFF' }}>
             سهل تبقى فرارجي
           </Txt>
-          <Txt style={{ fontFamily: 'ArefRuqaa_700Bold', fontSize: 18, fontWeight: '700', color: C.gold }}>
+          <Txt style={{ fontFamily: 'ArefRuqaa_700Bold', fontSize: 20, fontWeight: '700', color: '#FCD34D' }}>
             · صعب تبقى الرشيدي
           </Txt>
         </View>
-        <View style={{ height: 3, width: 48, borderRadius: 2, backgroundColor: C.gold, marginTop: 8 }} />
       </View>
     </View>
   );

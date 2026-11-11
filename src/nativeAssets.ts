@@ -8,6 +8,20 @@ import { cloudImages, toCdnUrl } from './cloudAssets';
 export const images: Record<string, any> = {
   'brand-logo': require('../assets/android/logo_alrashidi.png'),
   'chicken': require('../assets/android/prod_chicken_whole.png'),
+  'duck': { uri: toCdnUrl(cloudImages['duck'], 380) },
+  'pigeon': { uri: toCdnUrl(cloudImages['pigeon'], 380) },
+  'panee': { uri: toCdnUrl(cloudImages['panee'], 380) },
+  'shish': { uri: toCdnUrl(cloudImages['shish'], 380) },
+  'wings': { uri: toCdnUrl(cloudImages['wings'], 380) },
+  'drumsticks': { uri: toCdnUrl(cloudImages['drumsticks'], 380) },
+  'hero-chicken': { uri: toCdnUrl(cloudImages['hero-chicken'], 480) },
+  'hero-marinated': { uri: toCdnUrl(cloudImages['hero-marinated'], 480) },
+  'story-fresh-chicken': { uri: toCdnUrl(cloudImages['story-fresh-chicken'], 480) },
+  'story-shish-tawook': { uri: toCdnUrl(cloudImages['story-shish-tawook'], 480) },
+  'story-fresh-panee': { uri: toCdnUrl(cloudImages['story-fresh-panee'], 480) },
+  'story-baladi-poultry': { uri: toCdnUrl(cloudImages['story-baladi-poultry'], 480) },
+  'product-burger': { uri: toCdnUrl(cloudImages['product-burger'], 380) },
+  'product-marinated-shawerma': { uri: toCdnUrl(cloudImages['product-marinated-shawerma'], 380) },
 };
 
 // Map all 71 cloud catalog images to fast Cloudflare CDN WebP URIs
