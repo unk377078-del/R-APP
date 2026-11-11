@@ -452,16 +452,34 @@ function TransitionScreen({children}:any){const progress=useRef(new Animated.Val
 function TabButton({icon,label,active,onPress,color,activeColor,activeBg}:any){
   const scale=useRef(new Animated.Value(active?1.08:1)).current;
   useEffect(()=>{
-    Animated.spring(scale,{toValue:active?1.08:1,useNativeDriver:true,speed:22,bounciness:5}).start();
+    Animated.spring(scale,{toValue:active?1.08:1,useNativeDriver:true,speed:24,bounciness:4}).start();
   },[active,scale]);
   const c = active ? (activeColor || C.blue) : (color || C.muted);
   const bg = active ? (activeBg || 'rgba(23,74,156,0.14)') : 'transparent';
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{selected:active}} onPress={onPress} style={{flex:1,alignItems:'center',justifyContent:'center',minHeight:48}}>
-      <Animated.View style={{borderRadius:16,backgroundColor:bg,paddingHorizontal:9,paddingVertical:4,transform:[{scale}]}}>
-        <Ionicons name={icon} size={21} color={c}/>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{selected:active}}
+      onPress={onPress}
+      style={{flex:1,alignItems:'center',justifyContent:'center',minHeight:50}}>
+      <Animated.View
+        style={{
+          borderRadius:16,
+          backgroundColor:bg,
+          paddingHorizontal: active ? 10 : 6,
+          paddingVertical: active ? 3.5 : 5,
+          alignItems: 'center',
+          justifyContent: 'center',
+          transform:[{scale}]
+        }}>
+        <Ionicons name={icon} size={active ? 21 : 23} color={c}/>
       </Animated.View>
-      <Txt style={{fontSize:9.5,color:c,fontWeight:active?'900':'700',textAlign:'center',marginTop:1}}>{label}</Txt>
+      {active && (
+        <Txt numberOfLines={1} style={{fontSize:9.5,color:c,fontWeight:'900',textAlign:'center',marginTop:2}}>
+          {label}
+        </Txt>
+      )}
     </Pressable>
   );
 }

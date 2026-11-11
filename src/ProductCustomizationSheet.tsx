@@ -208,14 +208,14 @@ export function ProductCustomizationSheet({ product, onAdd, initialLine }: any) 
           const activeBg = isDark ? 'rgba(21,128,61,0.22)' : '#F0FDF4';
           const icon =
             group.type === 'WHOLE'
-              ? 'nutrition-outline'
+              ? 'cube-outline'
               : group.type === 'CUT'
-              ? 'cut-outline'
+              ? 'cut'
               : group.type === 'DEBONED'
-              ? 'restaurant-outline'
+              ? 'restaurant'
               : group.type === 'SKINNED'
-              ? 'water-outline'
-              : 'sparkles-outline';
+              ? 'sparkles'
+              : 'shield-checkmark-outline';
 
           return (
             <View
@@ -234,7 +234,12 @@ export function ProductCustomizationSheet({ product, onAdd, initialLine }: any) 
                 accessibilityState={{ selected: active }}
                 onPress={() => {
                   setSelectedPrep(group.type);
-                  setSelectedSubOption(group.subOptions?.[0] || '');
+                  const firstOpt = group.subOptions?.[0] || '';
+                  setSelectedSubOption(firstOpt);
+                  if (firstOpt) {
+                    const [optLabel, optDesc] = firstOpt.split(' — ');
+                    if (optDesc) setPrepInfo({ label: optLabel, description: optDesc });
+                  }
                 }}
                 style={{
                   minHeight: 64,
@@ -268,7 +273,7 @@ export function ProductCustomizationSheet({ product, onAdd, initialLine }: any) 
               {active && !!group.subOptions?.length && (
                 <View style={{ borderTopWidth: 1, borderColor: isDark ? 'rgba(21,128,61,0.2)' : '#DCFCE7', padding: 12 }}>
                   <Txt style={{ fontSize: 11, fontWeight: '900', color: C.navy, marginBottom: 8, textAlign: 'right' }}>
-                    حدد التفصيلة المطلوبة
+                    حدد التفصيلة المطلوبة (اضغط لعرض الشرح)
                   </Txt>
                   <View style={{ flexDirection: 'column', gap: 8 }}>
                     {group.subOptions.map((option: string) => {
@@ -279,7 +284,12 @@ export function ProductCustomizationSheet({ product, onAdd, initialLine }: any) 
                           key={option}
                           accessibilityRole="radio"
                           accessibilityState={{ selected: chosen }}
-                          onPress={() => setSelectedSubOption(option)}
+                          onPress={() => {
+                            setSelectedSubOption(option);
+                            if (optDesc) {
+                              setPrepInfo({ label: optLabel, description: optDesc });
+                            }
+                          }}
                           style={{
                             minHeight: 46,
                             paddingHorizontal: 14,
@@ -314,7 +324,22 @@ export function ProductCustomizationSheet({ product, onAdd, initialLine }: any) 
                               </Txt>
                             )}
                           </View>
-                          {chosen && <Ionicons name="checkmark-circle" size={18} color={C.white} style={{ marginStart: 8 }} />}
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            {!!optDesc && (
+                              <Pressable
+                                accessibilityRole="button"
+                                accessibilityLabel={`شرح تفصيلة ${optLabel}`}
+                                hitSlop={8}
+                                onPress={() => setPrepInfo({ label: optLabel, description: optDesc })}>
+                                <Ionicons
+                                  name="information-circle-outline"
+                                  size={19}
+                                  color={chosen ? 'rgba(255,255,255,0.9)' : C.navy}
+                                />
+                              </Pressable>
+                            )}
+                            {chosen && <Ionicons name="checkmark-circle" size={18} color={C.white} />}
+                          </View>
                         </Pressable>
                       );
                     })}
@@ -374,10 +399,11 @@ export function ProductCustomizationSheet({ product, onAdd, initialLine }: any) 
             bottom: 0,
             left: 0,
             right: 0,
-            backgroundColor: 'rgba(13,28,50,0.55)',
+            backgroundColor: 'rgba(13,28,50,0.65)',
             alignItems: 'center',
             justifyContent: 'center',
             padding: 22,
+            zIndex: 9999,
           }}>
           <Pressable
             accessibilityRole="button"
@@ -385,12 +411,40 @@ export function ProductCustomizationSheet({ product, onAdd, initialLine }: any) 
             onPress={() => setPrepInfo(null)}
             style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 }}
           />
-          <View style={[s.card, { width: '100%', maxWidth: 420, padding: 22, borderRadius: 22, elevation: 18 }]}>
-            <Txt style={{ fontSize: 19, fontWeight: '900', color: C.navy, marginBottom: 8, textAlign: 'right' }}>
+          <View
+            style={[
+              s.card,
+              {
+                width: '100%',
+                maxWidth: 400,
+                padding: 22,
+                borderRadius: 24,
+                elevation: 20,
+                borderWidth: 1.5,
+                borderColor: C.gold,
+                backgroundColor: C.solidSurface,
+                alignItems: 'center',
+              },
+            ]}>
+            <View
+              style={{
+                width: 52,
+                height: 52,
+                borderRadius: 26,
+                backgroundColor: 'rgba(245,158,11,0.15)',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 10,
+              }}>
+              <Ionicons name="information-circle" size={28} color={C.gold} />
+            </View>
+            <Txt style={{ fontSize: 19, fontWeight: '900', color: C.navy, marginBottom: 8, textAlign: 'center' }}>
               تفصيلة {prepInfo.label}
             </Txt>
-            <Txt style={{ fontSize: 15, lineHeight: 24, color: C.ink, textAlign: 'right' }}>{prepInfo.description}</Txt>
-            <Button title="تمام" onPress={() => setPrepInfo(null)} style={{ marginTop: 16 }} />
+            <Txt style={{ fontSize: 15, lineHeight: 24, color: C.ink, textAlign: 'center', marginBottom: 16 }}>
+              {prepInfo.description}
+            </Txt>
+            <Button title="تمام" onPress={() => setPrepInfo(null)} style={{ width: '100%' }} />
           </View>
         </View>
       )}
