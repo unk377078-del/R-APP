@@ -3,6 +3,29 @@ import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import { Order } from './models';
 
+/**
+ * Filter out default whole/intact preparations so "سليم" is NOT printed on the receipt.
+ * Only print preparation if it involves actual cutting, deboning, skinning, or mincing.
+ */
+function getPrintablePrep(selectedPrep?: string, selectedSubOption?: string): string {
+  let prep = (selectedPrep || '').trim();
+  const sub = (selectedSubOption || '').trim();
+  if (sub) {
+    prep += prep ? ` — ${sub}` : sub;
+  }
+  if (!prep) return '';
+
+  // If it's standard whole poultry without any custom cut/skin/debones, omit it
+  const isPureWhole = /^(سليم|WHOLE|كامل|كاملة)(\s*[\(—\-].*[\)]?)?$/i.test(prep);
+  const hasCustomCutOrWork = /قطع|تقطيع|مقطع|خلي|مخلى|مخلي|سلخ|مسلوخ|مفروم|بانيه|شيش|نصف|تبل|تتبيل/i.test(prep);
+
+  if (isPureWhole && !hasCustomCutOrWork) {
+    return '';
+  }
+
+  return prep;
+}
+
 export function generateOrderInvoiceHtml(order: Order): string {
   const orderDate = order.createdAt
     ? new Date(order.createdAt).toLocaleDateString('ar-EG', { year: 'numeric', month: 'numeric', day: 'numeric' })
@@ -14,8 +37,7 @@ export function generateOrderInvoiceHtml(order: Order): string {
   const channelText = isPickup ? `استلام: ${order.address}` : 'توصيل منزلي';
 
   const itemsHtml = (order.items || []).map((item, index) => {
-    let prepDetails = item.selectedPrep || '';
-    if (item.selectedSubOption) prepDetails += prepDetails ? ` — ${item.selectedSubOption}` : item.selectedSubOption;
+    const prepDetails = getPrintablePrep(item.selectedPrep, item.selectedSubOption);
 
     return `
       <div class="item-row">
@@ -223,29 +245,24 @@ export function generateOrderInvoiceHtml(order: Order): string {
       letter-spacing: 1px;
       font-size: 11px;
     }
-    /* Compact Footer */
+    /* Compact Footer without redundant slogans */
     .receipt-footer {
       border-top: 1.5px dashed #000;
       margin-top: 5px;
       padding-top: 5px;
       text-align: center;
     }
-    .footer-notice {
-      font-weight: 900;
-      font-size: 11px;
-      color: #000;
-    }
     .signatures-row {
       display: flex;
       justify-content: space-around;
-      margin-top: 5px;
+      margin-top: 3px;
       font-weight: bold;
       font-size: 11px;
     }
     .brand-contact {
       font-size: 10px;
       color: #444;
-      margin-top: 5px;
+      margin-top: 4px;
     }
     .print-actions {
       text-align: center;
@@ -319,7 +336,6 @@ export function generateOrderInvoiceHtml(order: Order): string {
 
     <!-- Compact Footer & Signatures -->
     <div class="receipt-footer">
-      <div class="footer-notice">✦ الحساب بالوزن الصافي الدقيق بالميزان ✦</div>
       <div class="signatures-row">
         <span>تجهيز: ________</span>
         <span>ميزان: ________</span>
@@ -399,14 +415,16 @@ export async function printFullOrder(order: Order): Promise<void> {
       order.note ? `ملاحظة: ${order.note}` : null,
       `--------------------------------`,
       `الأصناف والتجهيز:`,
-      ...(order.items || []).map((it, i) => [
-        `#${i + 1} ${it.name} [ ${it.quantity} ${it.unit || 'ك'}${it.size ? ` · ${it.size}` : ''} ]`,
-        it.selectedPrep ? `   ✂️ ${it.selectedPrep}${it.selectedSubOption ? ` — ${it.selectedSubOption}` : ''}` : null,
-        it.note ? `   ⚠ ${it.note}` : null,
-        `   [ الوزن: ............ كجم ]`,
-      ].filter(Boolean).join('\n')),
+      ...(order.items || []).map((it, i) => {
+        const prep = getPrintablePrep(it.selectedPrep, it.selectedSubOption);
+        return [
+          `#${i + 1} ${it.name} [ ${it.quantity} ${it.unit || 'ك'}${it.size ? ` · ${it.size}` : ''} ]`,
+          prep ? `   ✂️ ${prep}` : null,
+          it.note ? `   ⚠ ${it.note}` : null,
+          `   [ الوزن: ............ كجم ]`,
+        ].filter(Boolean).join('\n');
+      }),
       `--------------------------------`,
-      `✦ الحساب بالوزن الصافي بالميزان ✦`,
       `تجهيز: ______  ميزان: ______`,
       `خدمة العملاء: 01223381405`,
       `================================`,
@@ -418,7 +436,7 @@ export async function printFullOrder(order: Order): Promise<void> {
     } catch {}
     Alert.alert(
       'بون التجهيز والميزان (Xprinter 80mm) 🖨️',
-      'تم تجهيز ونسخ بون الأصناف والميزان بنجاح بتنسيق مدمج ومنظم بدون أسعار، وهو جاهز للطباعة المباشرة على طابعة البون الحرارية.'
+      'تم تجهيز ونسخ بون الأصناف والميزان بنجاح بدون أسعار، وهو جاهز للطباعة المباشرة على طابعة البون الحرارية.'
     );
   } catch (e: any) {
     Alert.alert('طباعة البون', e?.message || 'تعذر استدعاء الطباعة');
