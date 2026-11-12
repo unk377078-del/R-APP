@@ -5,7 +5,7 @@ let Notifications: any = null;
 try {
   Notifications = require('expo-notifications');
 } catch (e) {
-  console.warn('expo-notifications not available:', e);
+  // web / standalone fallback
 }
 
 // 1. Configure how notifications appear when app is foregrounded
@@ -66,37 +66,58 @@ export async function setupNotificationChannels(): Promise<void> {
 
 // 3. Request Permission from User
 export async function requestNotificationPermission(): Promise<{ granted: boolean; status: string }> {
-  if (!Notifications || typeof Notifications.getPermissionsAsync !== 'function') {
-    return { granted: false, status: 'unsupported' };
-  }
-
-  try {
-    const current = await Notifications.getPermissionsAsync();
-    if (current.granted || current.status === 'granted') {
-      await setupNotificationChannels();
+  // A. Inside Native Android APK WebView via AndroidBridge
+  if (typeof window !== 'undefined' && (window as any).AndroidBridge?.requestNotificationPermission) {
+    try {
+      (window as any).AndroidBridge.requestNotificationPermission();
       return { granted: true, status: 'granted' };
+    } catch (e) {
+      console.warn('AndroidBridge request permission error:', e);
     }
-
-    const requested = await Notifications.requestPermissionsAsync({
-      ios: {
-        allowAlert: true,
-        allowBadge: true,
-        allowSound: true,
-      },
-    });
-
-    const isGranted = requested.granted || requested.status === 'granted';
-    if (isGranted) {
-      await setupNotificationChannels();
-    }
-    return { granted: isGranted, status: requested.status };
-  } catch (err) {
-    console.warn('Error requesting notification permission:', err);
-    return { granted: false, status: 'error' };
   }
+
+  // B. Modern Web Browser Notification API
+  if (typeof window !== 'undefined' && 'Notification' in window) {
+    try {
+      const perm = await Notification.requestPermission();
+      return { granted: perm === 'granted', status: perm };
+    } catch (e) {
+      console.warn('Web notification request permission error:', e);
+    }
+  }
+
+  // C. Fallback to expo-notifications
+  if (Notifications && typeof Notifications.getPermissionsAsync === 'function') {
+    try {
+      const current = await Notifications.getPermissionsAsync();
+      if (current.granted || current.status === 'granted') {
+        await setupNotificationChannels();
+        return { granted: true, status: 'granted' };
+      }
+
+      const requested = await Notifications.requestPermissionsAsync({
+        ios: {
+          allowAlert: true,
+          allowBadge: true,
+          allowSound: true,
+        },
+      });
+
+      const isGranted = requested.granted || requested.status === 'granted';
+      if (isGranted) {
+        await setupNotificationChannels();
+      }
+      return { granted: isGranted, status: requested.status };
+    } catch (err) {
+      console.warn('Error requesting notification permission:', err);
+      return { granted: false, status: 'error' };
+    }
+  }
+
+  return { granted: false, status: 'unsupported' };
 }
 
-// 4. Send Instant Native System Notification (shows in status bar & lock screen)
+// 4. Send Instant Native System Notification (shows in phone status bar & lock screen)
 export async function triggerDeviceNotification({
   title,
   body,
@@ -108,26 +129,53 @@ export async function triggerDeviceNotification({
   data?: Record<string, any>;
   channelId?: 'orders' | 'promotions' | 'default';
 }): Promise<string | null> {
-  if (!Notifications || typeof Notifications.scheduleNotificationAsync !== 'function') {
-    return null;
+  let triggered = false;
+
+  // A. Native Android Bridge (triggers genuine Android system notification with sound & vibration)
+  if (typeof window !== 'undefined' && (window as any).AndroidBridge?.showNotification) {
+    try {
+      (window as any).AndroidBridge.showNotification(title, body, channelId);
+      triggered = true;
+    } catch (e) {
+      console.warn('AndroidBridge showNotification error:', e);
+    }
   }
 
-  try {
-    await setupNotificationChannels();
-    const id = await Notifications.scheduleNotificationAsync({
-      content: {
-        title,
+  // B. Standard Web Browser Notification (when accessed in Chrome, Edge, Safari)
+  if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+    try {
+      new Notification(title, {
         body,
-        sound: 'default',
-        vibrate: [0, 250, 250, 250],
-        priority: Notifications.AndroidNotificationPriority?.MAX ?? 'max',
+        icon: '/icon.png',
+        badge: '/icon.png',
         data,
-      },
-      trigger: null, // trigger immediately
-    });
-    return id;
-  } catch (err) {
-    console.warn('Failed to schedule device notification:', err);
-    return null;
+      });
+      triggered = true;
+    } catch (err) {
+      console.warn('Web Notification error:', err);
+    }
   }
+
+  // C. Fallback to expo-notifications if available
+  if (Notifications && typeof Notifications.scheduleNotificationAsync === 'function') {
+    try {
+      await setupNotificationChannels();
+      const id = await Notifications.scheduleNotificationAsync({
+        content: {
+          title,
+          body,
+          sound: 'default',
+          vibrate: [0, 250, 250, 250],
+          priority: Notifications.AndroidNotificationPriority?.MAX ?? 'max',
+          data,
+        },
+        trigger: null, // trigger immediately
+      });
+      return id;
+    } catch (err) {
+      console.warn('Failed to schedule device notification:', err);
+    }
+  }
+
+  return triggered ? 'dispatched' : null;
 }

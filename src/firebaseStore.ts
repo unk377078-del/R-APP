@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { collection, deleteDoc, doc, getDoc, getDocs, onSnapshot, query, runTransaction, setDoc, where } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDoc, getDocs, limit, onSnapshot, query, runTransaction, setDoc, updateDoc, where } from 'firebase/firestore';
 import type { Unsubscribe } from 'firebase/firestore';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { AppNotice, AppStory, BadgeOption, Banner, CartLine, Order, PrepGroup, Product, RashidiShowcaseConfig } from './models';
@@ -459,18 +459,44 @@ export async function saveLoyaltyToFirestore(settings: { enabled: boolean; point
 }
 
 export async function updateFirestoreOrderStatus(orderId: string, status: string, targetPhone = '', targetEmail = ''): Promise<void> {
-  if (!firestore || !isFirebaseConfigured) return;
+  if (!firestore || !isFirebaseConfigured || !orderId) return;
   const createdAt = Date.now();
-  const orderRef = doc(firestore, 'orders', orderId);
-  let ownerUid = '';
 
+  // 1. Locate the actual Firestore document: try direct docId first
+  let orderRef = doc(firestore, 'orders', orderId);
+  let orderSnapshot = await getDoc(orderRef);
+
+  if (!orderSnapshot.exists()) {
+    // If not found by direct docId, look up by orderNumber, displayId, or orderId field
+    const num = parseInt(orderId, 10);
+    let q = query(collection(firestore, 'orders'), where('displayId', '==', orderId), limit(1));
+    let snap = await getDocs(q);
+    if (snap.empty && !isNaN(num) && num > 0) {
+      q = query(collection(firestore, 'orders'), where('orderNumber', '==', num), limit(1));
+      snap = await getDocs(q);
+    }
+    if (snap.empty) {
+      q = query(collection(firestore, 'orders'), where('orderId', '==', orderId), limit(1));
+      snap = await getDocs(q);
+    }
+    if (!snap.empty) {
+      orderRef = snap.docs[0].ref;
+      orderSnapshot = snap.docs[0];
+    } else {
+      console.warn(`Order ${orderId} does not exist in Firestore. Aborting update to prevent creating ghost order.`);
+      return;
+    }
+  }
+
+  let ownerUid = '';
   const shouldAwardPoints = /تم التسليم|مكتمل/.test(status);
 
   if (shouldAwardPoints) {
     try {
       await runTransaction(firestore, async (transaction) => {
-        const orderSnapshot = await transaction.get(orderRef);
-        const order = orderSnapshot.data() || {};
+        const txSnap = await transaction.get(orderRef);
+        if (!txSnap.exists()) return;
+        const order = txSnap.data() || {};
         ownerUid = String(order.ownerUid || '');
         let userRef: typeof orderRef | undefined;
         let currentPoints = 0;
@@ -485,18 +511,18 @@ export async function updateFirestoreOrderStatus(orderId: string, status: string
           isCustomer = userSnapshot.exists() && String(userSnapshot.data().role || '').toUpperCase() === 'CUSTOMER';
           currentPoints = Math.floor(numberOr(userSnapshot.data()?.loyaltyPoints, 0));
         }
-        transaction.set(orderRef, { status, updatedAt: createdAt }, { merge: true });
+        transaction.update(orderRef, { status, updatedAt: createdAt });
         if (userRef && isCustomer) {
           transaction.set(userRef, { loyaltyPoints: currentPoints + earnedPoints }, { merge: true });
-          transaction.set(orderRef, { pointsAwardedAt: createdAt }, { merge: true });
+          transaction.update(orderRef, { pointsAwardedAt: createdAt });
         }
       });
     } catch (txErr) {
-      console.warn('Points transaction fallback to direct setDoc:', txErr);
-      await setDoc(orderRef, { status, updatedAt: createdAt }, { merge: true });
+      console.warn('Points transaction fallback to direct updateDoc:', txErr);
+      await updateDoc(orderRef, { status, updatedAt: createdAt });
     }
   } else {
-    await setDoc(orderRef, { status, updatedAt: createdAt }, { merge: true });
+    await updateDoc(orderRef, { status, updatedAt: createdAt });
   }
 
   try {
@@ -524,6 +550,13 @@ export function subscribeOrders(ownerUid: string, isAdmin: boolean, onOrders: (o
   return onSnapshot(ordersQuery, (snapshot) => {
     const orders = snapshot.docs.flatMap((item): Order[] => {
       const data = item.data();
+      // CRITICAL: Filter out any corrupt or ghost documents that have no customer and no items!
+      const hasCustomer = Boolean(data.customerName || data.customer || data.customerPhone || data.phone);
+      const hasItems = Array.isArray(data.items) && data.items.length > 0;
+      if (!hasCustomer && !hasItems) {
+        return [];
+      }
+
       const items = Array.isArray(data.items) ? data.items.flatMap((raw: any, index: number): CartLine[] => {
         if (!raw || typeof raw !== 'object') return [];
         return [{
@@ -541,6 +574,7 @@ export function subscribeOrders(ownerUid: string, isAdmin: boolean, onOrders: (o
       const displayId = orderNum > 0 ? String(orderNum) : String(data.displayId || data.orderId || item.id);
       return [{
         id: displayId,
+        docId: item.id,
         orderNumber: orderNum > 0 ? orderNum : undefined,
         total: numberOr(data.total, 0), subtotal: numberOr(data.subtotal, 0),
         discount: numberOr(data.discount, 0) + numberOr(data.loyaltyDiscountAmount, 0),
@@ -549,7 +583,7 @@ export function subscribeOrders(ownerUid: string, isAdmin: boolean, onOrders: (o
         customerDocumentId: String(data.customerDocumentId || ''),
         status: String(data.status || '').trim() === 'قيد الانتظار' || !data.status ? 'قيد المراجعة والتجهيز' : String(data.status),
         createdAt: numberOr(data.createdAt, Date.parse(String(data.timestamp || '')) || Date.now()),
-        customer: String(data.customerName || ''), phone: String(data.customerPhone || ''), email: String(data.customerEmail || ''), items,
+        customer: String(data.customerName || data.customer || ''), phone: String(data.customerPhone || data.phone || ''), email: String(data.customerEmail || data.email || ''), items,
         address: [data.area, data.street, data.buildingInfo].filter((part) => typeof part === 'string' && part).join('، ') + (data.formattedAddress ? ` · ${data.formattedAddress}` : '') || String(data.branchName || ''), payment: String(data.paymentMethod || '') === 'INSTAPAY' ? 'InstaPay' : String(data.paymentMethod || ''),
         schedule: String(data.deliveryTimeSlot || ''), note: String(data.generalNotes || ''),
       }];
