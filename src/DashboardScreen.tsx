@@ -1507,7 +1507,7 @@ ${itemsSummary}
           </View>
         </View>
       )}
-      {/* Small subtle print button at the bottom */}
+      {/* Thermal Receipt Print Button */}
       <Pressable
         onPress={() => printFullOrder(order)}
         style={({ pressed }) => [
@@ -1515,21 +1515,22 @@ ${itemsSummary}
             flexDirection: 'row-reverse',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: 4,
-            paddingVertical: 5,
-            paddingHorizontal: 12,
-            marginTop: 6,
-            borderRadius: 8,
-            backgroundColor: 'rgba(23,74,156,0.04)',
+            gap: 6,
+            paddingVertical: 7,
+            paddingHorizontal: 16,
+            marginTop: 8,
+            borderRadius: 10,
+            backgroundColor: 'rgba(23,74,156,0.08)',
             alignSelf: 'center',
-            borderWidth: 1,
-            borderColor: 'rgba(23,74,156,0.12)',
-            opacity: pressed ? 0.6 : 0.85,
+            borderWidth: 1.2,
+            borderColor: C.blue,
+            opacity: pressed ? 0.6 : 1,
           },
         ]}
       >
-        <Txt style={{ fontSize: 11, color: C.muted, fontWeight: '700' }}>
-          🖨️ طباعة الفاتورة الكاملة (A4 / بون)
+        <Ionicons name="receipt-outline" size={15} color={C.blue} />
+        <Txt style={{ fontSize: 12, color: C.blue, fontWeight: '900' }}>
+          طباعة بون التجهيز والميزان (Xprinter 80mm) 🖨️
         </Txt>
       </Pressable>
     </View>

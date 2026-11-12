@@ -3,38 +3,45 @@ import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import { Order } from './models';
 
-const money = (n: number) => `${Math.round(n).toLocaleString('ar-EG')} ج.م`;
-
 export function generateOrderInvoiceHtml(order: Order): string {
-  const orderDate = order.createdAt ? new Date(order.createdAt).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' }) : '—';
-  const orderTime = order.createdAt ? new Date(order.createdAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : '—';
+  const orderDate = order.createdAt
+    ? new Date(order.createdAt).toLocaleDateString('ar-EG', { year: 'numeric', month: 'numeric', day: 'numeric' })
+    : '—';
+  const orderTime = order.createdAt
+    ? new Date(order.createdAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })
+    : '—';
   const isPickup = (order.address || '').includes('فرع') && !(order.address || '').includes('·');
   const channelText = isPickup ? `استلام من ${order.address}` : 'توصيل منزلي سريّع';
 
-  const itemsRows = (order.items || []).map((item, index) => {
-    let prepDetails = item.selectedPrep || 'سليم';
-    if (item.selectedSubOption) prepDetails += ` (${item.selectedSubOption})`;
-    if (item.size) prepDetails += ` · حجم: ${item.size}`;
-    const itemTotal = Math.round(item.price * item.quantity);
+  const itemsHtml = (order.items || []).map((item, index) => {
+    let prepDetails = item.selectedPrep || '';
+    if (item.selectedSubOption) prepDetails += prepDetails ? ` — ${item.selectedSubOption}` : item.selectedSubOption;
 
     return `
-      <tr>
-        <td style="text-align: center; font-weight: bold; padding: 7px 4px; border-bottom: 1px dashed #cbd5e1;">${index + 1}</td>
-        <td style="padding: 7px 6px; border-bottom: 1px dashed #cbd5e1; font-weight: bold; color: #0f172a;">
-          ${item.name}
-          ${prepDetails ? `<div style="font-size: 11px; color: #2563eb; font-weight: normal; margin-top: 2px;">✂ التجهيز: ${prepDetails}</div>` : ''}
-          ${item.note ? `<div style="font-size: 11px; color: #d97706; font-weight: normal; margin-top: 2px;">⚠ ملاحظة: ${item.note}</div>` : ''}
-        </td>
-        <td style="text-align: center; padding: 7px 4px; border-bottom: 1px dashed #cbd5e1; font-weight: bold;">
-          ${item.quantity} ${item.unit || 'كيلو'}
-        </td>
-        <td style="text-align: center; padding: 7px 4px; border-bottom: 1px dashed #cbd5e1; color: #475569;">
-          ${Math.round(item.price)}
-        </td>
-        <td style="text-align: left; padding: 7px 6px; border-bottom: 1px dashed #cbd5e1; font-weight: 900; color: #0f172a;">
-          ${itemTotal.toLocaleString('ar-EG')} ج.م
-        </td>
-      </tr>
+      <div class="item-block">
+        <div class="item-header">
+          <span class="item-num">#${index + 1}</span>
+          <span class="item-name">${item.name}</span>
+        </div>
+        <div class="item-line">
+          الكمية المطلوبة: <strong>${item.quantity} ${item.unit || 'كيلو'}</strong>
+          ${item.size ? `<span class="item-size">· حجم: <strong>${item.size}</strong></span>` : ''}
+        </div>
+        ${prepDetails ? `
+          <div class="item-prep">
+            ✂️ <strong>التجهيز:</strong> ${prepDetails}
+          </div>
+        ` : ''}
+        ${item.note ? `
+          <div class="item-note">
+            ⚠ <strong>ملاحظة الصنف:</strong> ${item.note}
+          </div>
+        ` : ''}
+        <div class="item-weight-box">
+          <span>الوزن الصافي بالميزان:</span>
+          <span class="weight-line">[ ........................ كجم ]</span>
+        </div>
+      </div>
     `;
   }).join('');
 
@@ -42,146 +49,220 @@ export function generateOrderInvoiceHtml(order: Order): string {
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8">
-  <title>فاتورة طلب #${order.id} - طيور الرشيدي</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>بون تجهيز وميزان طلب #${order.orderNumber || order.id} - طيور الرشيدي</title>
   <style>
     @page {
-      size: A4 portrait;
-      margin: 12mm;
+      size: 80mm auto;
+      margin: 2mm 3mm;
     }
     @media print {
-      body { margin: 0; background: #fff !important; }
+      body {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+        color: #000 !important;
+        width: 76mm !important;
+        max-width: 76mm !important;
+        font-size: 12.5px !important;
+      }
       .no-print { display: none !important; }
-      .invoice-container { box-shadow: none !important; border: 1px solid #94a3b8 !important; }
+      .thermal-receipt {
+        box-shadow: none !important;
+        border: none !important;
+        padding: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+      .item-block {
+        page-break-inside: avoid;
+      }
+    }
+    * {
+      box-sizing: border-box;
     }
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, 'Rubik', sans-serif;
-      margin: 20px auto;
-      max-width: 780px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, 'Cairo', Arial, sans-serif;
+      margin: 12px auto;
+      width: 76mm;
+      max-width: 320px;
       direction: rtl;
       text-align: right;
-      color: #0f172a;
-      background: #f8fafc;
+      color: #000;
+      background: #f1f5f9;
       font-size: 13px;
-      line-height: 1.5;
+      line-height: 1.45;
     }
-    .invoice-container {
+    .thermal-receipt {
       background: #ffffff;
-      border: 1px solid #e2e8f0;
-      border-radius: 12px;
-      padding: 24px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+      border: 1px solid #cbd5e1;
+      padding: 12px 10px;
+      margin: 0 auto;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     }
-    .header {
-      border-bottom: 2px solid #174a9c;
-      padding-bottom: 14px;
-      margin-bottom: 16px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+    .receipt-header {
+      text-align: center;
+      border-bottom: 2px dashed #000;
+      padding-bottom: 8px;
+      margin-bottom: 8px;
     }
     .brand-title {
-      font-size: 24px;
+      font-size: 21px;
       font-weight: 900;
-      color: #174a9c;
       margin: 0;
+      color: #000;
     }
-    .brand-sub {
-      font-size: 12px;
-      color: #64748b;
-      margin-top: 3px;
+    .brand-subtitle {
+      font-size: 11.5px;
+      font-weight: 700;
+      margin-top: 2px;
+      color: #111;
     }
-    .invoice-badge {
-      background: #eff6ff;
-      border: 1px solid #bfdbfe;
-      padding: 6px 14px;
-      border-radius: 8px;
-      text-align: left;
-    }
-    .info-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      padding: 12px 16px;
-      margin-bottom: 18px;
-    }
-    .info-item {
-      margin: 3px 0;
-    }
-    .info-label {
-      color: #64748b;
-      font-size: 11px;
-    }
-    .info-val {
-      font-weight: bold;
-      color: #0f172a;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 18px;
-    }
-    th {
-      background: #f1f5f9;
-      color: #1e293b;
-      font-size: 12px;
+    .order-badge {
+      display: inline-block;
+      margin-top: 6px;
+      padding: 4px 12px;
+      border: 2px solid #000;
+      border-radius: 6px;
+      font-size: 17px;
       font-weight: 900;
-      padding: 9px 6px;
-      border-bottom: 2px solid #cbd5e1;
+      letter-spacing: 0.5px;
     }
-    .totals-box {
-      margin-right: auto;
-      width: 280px;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      padding: 12px;
+    .receipt-meta {
+      border-bottom: 1.5px dashed #000;
+      padding-bottom: 8px;
+      margin-bottom: 8px;
+      font-size: 12px;
     }
-    .total-row {
+    .meta-row {
       display: flex;
       justify-content: space-between;
-      padding: 4px 0;
-      font-size: 13px;
+      margin: 3px 0;
     }
-    .total-grand {
-      border-top: 2px dashed #cbd5e1;
-      margin-top: 6px;
-      padding-top: 8px;
-      font-weight: 900;
-      font-size: 16px;
-      color: #174a9c;
-    }
-    .notice {
-      background: #fffbeb;
-      border: 1px solid #fde68a;
-      border-radius: 8px;
-      padding: 10px 14px;
-      color: #92400e;
-      font-size: 11px;
+    .meta-label {
       font-weight: bold;
-      margin-top: 14px;
+      color: #000;
     }
-    .footer {
-      border-top: 1px solid #e2e8f0;
-      margin-top: 20px;
-      padding-top: 12px;
+    .meta-val {
+      font-weight: normal;
+      color: #000;
+      text-align: left;
+      max-width: 65%;
+      word-break: break-word;
+    }
+    .note-box {
+      border: 1.5px dashed #000;
+      padding: 6px 8px;
+      border-radius: 4px;
+      margin: 6px 0;
+      font-weight: bold;
+      font-size: 11.5px;
+      background: #fafafa;
+    }
+    .section-title {
+      font-size: 13.5px;
+      font-weight: 900;
       text-align: center;
+      background: #000;
+      color: #fff;
+      padding: 4px 0;
+      margin: 8px 0;
+      border-radius: 3px;
+    }
+    .item-block {
+      border-bottom: 1px dashed #000;
+      padding: 8px 0;
+    }
+    .item-header {
+      display: flex;
+      align-items: center;
+      justifyContent: flex-start;
+      gap: 6px;
+      margin-bottom: 3px;
+    }
+    .item-num {
+      font-weight: 900;
+      font-size: 14px;
+    }
+    .item-name {
+      font-size: 15px;
+      font-weight: 900;
+      color: #000;
+    }
+    .item-line {
+      font-size: 12.5px;
+      margin: 2px 0;
+    }
+    .item-size {
+      margin-right: 4px;
+    }
+    .item-prep {
+      font-size: 12px;
+      margin: 3px 0;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      padding: 3px 6px;
+      border-radius: 4px;
+      color: #000;
+    }
+    .item-note {
+      font-size: 11.5px;
+      margin: 3px 0;
+      color: #000;
+    }
+    .item-weight-box {
+      margin-top: 6px;
+      padding-top: 5px;
+      border-top: 1px dotted #888;
+      display: flex;
+      justifyContent: space-between;
+      align-items: center;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    .weight-line {
+      font-family: monospace;
+      letter-spacing: 1px;
+    }
+    .prep-summary {
+      border-top: 1.5px dashed #000;
+      border-bottom: 1.5px dashed #000;
+      padding: 8px 0;
+      margin: 10px 0;
+      text-align: center;
+    }
+    .prep-notice {
+      font-weight: 900;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .signatures {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 8px;
+      padding-top: 6px;
+      border-top: 1px dotted #888;
+      font-weight: bold;
+      font-size: 11.5px;
+    }
+    .receipt-footer {
+      text-align: center;
+      margin-top: 6px;
       font-size: 11px;
-      color: #94a3b8;
+      color: #333;
     }
     .print-actions {
       text-align: center;
-      margin-bottom: 16px;
+      margin-bottom: 10px;
     }
     .btn-print {
+      width: 100%;
       background: #174a9c;
       color: #fff;
       border: none;
-      padding: 10px 24px;
+      padding: 10px 14px;
       border-radius: 8px;
-      font-weight: bold;
+      font-weight: 900;
       font-size: 14px;
       cursor: pointer;
     }
@@ -189,88 +270,80 @@ export function generateOrderInvoiceHtml(order: Order): string {
 </head>
 <body>
   <div class="print-actions no-print">
-    <button class="btn-print" onclick="window.print()">🖨️ طباعة الفاتورة الآن (Print)</button>
+    <button class="btn-print" onclick="window.print()">🖨️ طباعة بون التجهيز الآن (Xprinter 80mm)</button>
   </div>
 
-  <div class="invoice-container">
-    <div class="header">
-      <div>
-        <h1 class="brand-title">محل طيور الرشيدي 🍗</h1>
-        <div class="brand-sub">أصل الدواجن الطازجة بالإسكندرية · جودة وتجهيز فوري منذ 1960</div>
+  <div class="thermal-receipt">
+    {/* Receipt Header */}
+    <div class="receipt-header">
+      <h1 class="brand-title">طيور الرشيدي 🍗</h1>
+      <div class="brand-subtitle">بون تجهيز وميزان الدواجن الطازجة</div>
+      <div class="order-badge">طلب #${order.orderNumber || order.id}</div>
+    </div>
+
+    {/* Order & Customer Metadata */}
+    <div class="receipt-meta">
+      <div class="meta-row">
+        <span class="meta-label">التاريخ والوقت:</span>
+        <span class="meta-val">${orderDate} — ${orderTime}</span>
       </div>
-      <div class="invoice-badge">
-        <div style="font-size: 18px; font-weight: 900; color: #174a9c;">طلب #${order.id}</div>
-        <div style="font-size: 11px; color: #64748b;">${orderDate} - ${orderTime}</div>
+      <div class="meta-row">
+        <span class="meta-label">العميل:</span>
+        <span class="meta-val"><strong>${order.customer || 'عميل'}</strong></span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">الهاتف:</span>
+        <span class="meta-val" dir="ltr">${order.phone || '—'}</span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">قناة الاستلام:</span>
+        <span class="meta-val"><strong>${channelText}</strong></span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">الموعد:</span>
+        <span class="meta-val">${order.schedule || 'فوري'}</span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">العنوان:</span>
+        <span class="meta-val">${order.address || 'استلام من الفرع'}</span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">طريقة الدفع:</span>
+        <span class="meta-val">${order.payment || 'كاش عند الاستلام'}</span>
+      </div>
+      ${order.note ? `
+        <div class="note-box">
+          ⚠ ملاحظات عامة للطلب: ${order.note}
+        </div>
+      ` : ''}
+    </div>
+
+    {/* Items Section Header */}
+    <div class="section-title">
+      أصناف التجهيز والتقطيع (${order.items?.length || 0})
+    </div>
+
+    {/* Items List */}
+    <div class="items-container">
+      ${itemsHtml}
+    </div>
+
+    {/* Prep Summary & Signature - NO PRICES, SCALE WEIGHT DETERMINATION */}
+    <div class="prep-summary">
+      <div class="prep-notice">
+        ✦ بون تجهيز وتحضير داخلي ✦<br>
+        الحساب النهائي يُحدد بالوزن الصافي الدقيق بالميزان
+      </div>
+      <div class="signatures">
+        <div>تجهيز: ....................</div>
+        <div>ميزان: ....................</div>
       </div>
     </div>
 
-    <div class="info-grid">
-      <div>
-        <div class="info-item"><span class="info-label">العميل:</span> <span class="info-val">${order.customer || 'عميل'}</span></div>
-        <div class="info-item"><span class="info-label">الهاتف:</span> <span class="info-val">${order.phone || '—'}</span></div>
-        <div class="info-item"><span class="info-label">العنوان:</span> <span class="info-val">${order.address || 'استلام من الفرع'}</span></div>
-      </div>
-      <div>
-        <div class="info-item"><span class="info-label">قناة الطلب:</span> <span class="info-val">${channelText}</span></div>
-        <div class="info-item"><span class="info-label">طريقة الدفع:</span> <span class="info-val">${order.payment || 'كاش عند الاستلام'}</span></div>
-        <div class="info-item"><span class="info-label">موعد الاستلام:</span> <span class="info-val">${order.schedule || 'فوري'}</span></div>
-      </div>
-    </div>
-
-    <table>
-      <thead>
-        <tr>
-          <th style="width: 35px; text-align: center;">#</th>
-          <th>الصنف والتجهيز</th>
-          <th style="width: 80px; text-align: center;">الكمية</th>
-          <th style="width: 75px; text-align: center;">سعر الكيلو</th>
-          <th style="width: 95px; text-align: left;">الإجمالي</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${itemsRows}
-      </tbody>
-    </table>
-
-    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;">
-      <div style="flex: 1;">
-        ${order.note ? `
-          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; font-size: 12px;">
-            <span style="font-weight: bold; color: #b45309;">ملاحظات خاصة من العميل:</span>
-            <div style="margin-top: 3px; color: #334155;">${order.note}</div>
-          </div>
-        ` : ''}
-        <div class="notice">
-          ⚠ تنبيه: الأسعار تقريبية بناءً على الوزن المطلوب، ويتم الحساب النهائي بالوزن الفعلي الدقيق بالميزان عند التجهيز والتسليم.
-        </div>
-      </div>
-
-      <div class="totals-box">
-        <div class="total-row">
-          <span style="color: #64748b;">قيمة المنتجات:</span>
-          <span>${money(order.subtotal)}</span>
-        </div>
-        ${order.discount > 0 ? `
-          <div class="total-row" style="color: #15803d;">
-            <span>الخصم${order.couponCode ? ` (${order.couponCode})` : ''}:</span>
-            <span>-${money(order.discount)}</span>
-          </div>
-        ` : ''}
-        ${order.deliveryFee ? `
-          <div class="total-row">
-            <span style="color: #64748b;">خدمة التوصيل:</span>
-            <span>+${money(order.deliveryFee)}</span>
-          </div>
-        ` : ''}
-        <div class="total-row total-grand">
-          <span>الإجمالي المطلوب:</span>
-          <span>${money(order.total)}</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="footer">
-      طيور الرشيدي · الإسكندرية (كامب شيزار · سموحة · بحري) · خدمة العملاء: 01221111111 · شكراً لثقتكم واختياركم لنا!
+    {/* Footer */}
+    <div class="receipt-footer">
+      طيور الرشيدي · الإسكندرية منذ ١٩٦٠<br>
+      خدمة العملاء: 01223381405 · شكراً لثقتكم!
     </div>
   </div>
 </body>
@@ -282,7 +355,7 @@ export async function printFullOrder(order: Order): Promise<void> {
 
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
     try {
-      const printWindow = window.open('', '_blank', 'width=800,height=900');
+      const printWindow = window.open('', '_blank', 'width=420,height=750');
       if (printWindow) {
         printWindow.document.open();
         printWindow.document.write(html);
@@ -325,30 +398,56 @@ export async function printFullOrder(order: Order): Promise<void> {
     }
   }
 
-  // Mobile / Fallback clipboard & share
+  // Mobile / Fallback clipboard & thermal printer share
   try {
+    const orderDate = order.createdAt
+      ? new Date(order.createdAt).toLocaleDateString('ar-EG', { year: 'numeric', month: 'numeric', day: 'numeric' })
+      : '—';
+    const orderTime = order.createdAt
+      ? new Date(order.createdAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })
+      : '—';
+    const isPickup = (order.address || '').includes('فرع') && !(order.address || '').includes('·');
+    const channelText = isPickup ? `استلام من ${order.address}` : 'توصيل منزلي';
+
     const textSlip = [
-      `=== فاتورة طلب كاملة - طيور الرشيدي ===`,
-      `طلب رقم: #${order.id}`,
-      `العميل: ${order.customer || 'عميل'} (${order.phone || '—'})`,
+      `================================`,
+      `        طيور الرشيدي 🍗        `,
+      `    بون تجهيز وميزان الدواجن    `,
+      `================================`,
+      `طلب رقم: #${order.orderNumber || order.id}`,
+      `التاريخ: ${orderDate} - ${orderTime}`,
+      `الاستلام: ${channelText} · ${order.schedule || 'فوري'}`,
+      `العميل: ${order.customer || 'عميل'}`,
+      `الهاتف: ${order.phone || '—'}`,
       `العنوان: ${order.address || 'استلام من الفرع'}`,
-      `الموعد: ${order.schedule} · طريقة الدفع: ${order.payment}`,
-      `---------------------------------`,
-      ...(order.items || []).map((it, i) => `${i + 1}. ${it.name} - ${it.quantity} ${it.unit} (${Math.round(it.price * it.quantity)} ج.م)\n   التجهيز: ${it.selectedPrep || 'سليم'}${it.selectedSubOption ? ` (${it.selectedSubOption})` : ''}`),
-      `---------------------------------`,
-      `قيمة المنتجات: ${money(order.subtotal)}`,
-      order.discount > 0 ? `الخصم: -${money(order.discount)}` : null,
-      order.deliveryFee ? `التوصيل: +${money(order.deliveryFee)}` : null,
-      `الإجمالي النهائي: ${money(order.total)}`,
-      `* الحساب النهائي بالوزن عند الاستلام`,
+      `طريقة الدفع: ${order.payment || 'كاش عند الاستلام'}`,
+      order.note ? `⚠ ملاحظات العميل: ${order.note}` : null,
+      `--------------------------------`,
+      `قائمة الأصناف للتجهيز والوزن:`,
+      `--------------------------------`,
+      ...(order.items || []).map((it, i) => [
+        `[${i + 1}] ${it.name}`,
+        `   • الكمية: ${it.quantity} ${it.unit || 'كيلو'}${it.size ? ` (حجم: ${it.size})` : ''}`,
+        it.selectedPrep ? `   • التجهيز: ${it.selectedPrep}${it.selectedSubOption ? ` — ${it.selectedSubOption}` : ''}` : null,
+        it.note ? `   • ملاحظة الصنف: ${it.note}` : null,
+        `   [ الوزن الفعلي الصافي: ........... كجم ]`,
+      ].filter(Boolean).join('\n')),
+      `--------------------------------`,
+      `✦ الحساب بالوزن الدقيق الصافي بالميزان ✦`,
+      `تجهيز: ............  ميزان: ............`,
+      `طيور الرشيدي · الإسكندرية منذ ١٩٦٠`,
+      `================================`,
     ].filter(Boolean).join('\n');
 
     await Clipboard.setStringAsync(textSlip);
     try {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch {}
-    Alert.alert('فاتورة الطلب الكاملة 🖨️', 'تم تجهيز ونسخ الفاتورة الكاملة للحافظة بنجاح، ويمكنك إرسالها للطابعة أو مشاركتها عبر واتساب.');
+    Alert.alert(
+      'بون التجهيز والميزان (Xprinter 80mm) 🖨️',
+      'تم تجهيز ونسخ بون الأصناف والميزان بنجاح بدون أسعار، وهو جاهز للطباعة المباشرة على طابعة البون الحرارية أو عبر طابعات البلوتوث.'
+    );
   } catch (e: any) {
-    Alert.alert('طباعة الفاتورة', e?.message || 'تعذر استدعاء الطباعة');
+    Alert.alert('طباعة البون', e?.message || 'تعذر استدعاء الطباعة');
   }
 }
