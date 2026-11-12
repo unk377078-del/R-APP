@@ -47,10 +47,6 @@ export function generateOrderInvoiceHtml(order: Order): string {
         </div>
         ${prepDetails ? `<div class="item-prep">✂️ التجهيز: ${prepDetails}</div>` : ''}
         ${item.note ? `<div class="item-note">⚠ ملاحظة: ${item.note}</div>` : ''}
-        <div class="item-scale">
-          <span class="scale-lbl">الوزن الفعلي:</span>
-          <span class="scale-line">[ .................... كجم ]</span>
-        </div>
       </div>
     `;
   }).join('');
@@ -191,7 +187,7 @@ export function generateOrderInvoiceHtml(order: Order): string {
     }
     .item-row {
       border-bottom: 1px dotted #666;
-      padding: 4px 0;
+      padding: 5px 0;
     }
     .item-row:last-child {
       border-bottom: none;
@@ -219,41 +215,9 @@ export function generateOrderInvoiceHtml(order: Order): string {
       margin-top: 1px;
       padding-right: 8px;
     }
-    .item-scale {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: 3px;
-      padding-top: 2px;
-      font-size: 11px;
-      font-weight: bold;
-    }
-    .scale-lbl {
-      color: #333;
-    }
-    .scale-line {
-      font-family: monospace;
-      letter-spacing: 1px;
-      font-size: 11px;
-    }
-    /* Compact Footer without redundant slogans */
-    .receipt-footer {
-      border-top: 1.5px dashed #000;
-      margin-top: 5px;
-      padding-top: 5px;
-      text-align: center;
-    }
-    .signatures-row {
-      display: flex;
-      justify-content: space-around;
-      margin-top: 3px;
-      font-weight: bold;
-      font-size: 11px;
-    }
-    .brand-contact {
-      font-size: 10px;
-      color: #444;
-      margin-top: 4px;
+    .receipt-cutoff {
+      border-bottom: 2px dashed #000;
+      margin-top: 8px;
     }
     .print-actions {
       text-align: center;
@@ -285,7 +249,7 @@ export function generateOrderInvoiceHtml(order: Order): string {
         <span class="order-badge">طلب #${order.orderNumber || order.id}</span>
       </div>
       <div class="header-sub">
-        <span>بون تجهيز وميزان</span>
+        <span>بون تجهيز الطلب</span>
         <span>${orderDate} · ${orderTime}</span>
       </div>
     </div>
@@ -318,21 +282,15 @@ export function generateOrderInvoiceHtml(order: Order): string {
     </table>
 
     <!-- Items Section Header -->
-    <div class="section-title">أصناف التجهيز والوزن (${order.items?.length || 0})</div>
+    <div class="section-title">أصناف التجهيز (${order.items?.length || 0})</div>
 
     <!-- Items List -->
     <div class="items-container">
       ${itemsHtml}
     </div>
 
-    <!-- Compact Footer & Signatures -->
-    <div class="receipt-footer">
-      <div class="signatures-row">
-        <span>تجهيز: ________</span>
-        <span>ميزان: ________</span>
-      </div>
-      <div class="brand-contact">طيور الرشيدي · خدمة العملاء: 01223381405</div>
-    </div>
+    <!-- Clean Cutoff Border -->
+    <div class="receipt-cutoff"></div>
   </div>
 </body>
 </html>`;
@@ -412,12 +370,8 @@ export async function printFullOrder(order: Order): Promise<void> {
           `- ${formatItemNaturalTitle(it)}`,
           prep ? `   ✂️ التجهيز: ${prep}` : null,
           it.note ? `   ⚠ ملاحظة: ${it.note}` : null,
-          `   [ الوزن: ............ كجم ]`,
         ].filter(Boolean).join('\n');
       }),
-      `--------------------------------`,
-      `تجهيز: ______  ميزان: ______`,
-      `خدمة العملاء: 01223381405`,
       `================================`,
     ].filter(Boolean).join('\n');
 
@@ -426,8 +380,8 @@ export async function printFullOrder(order: Order): Promise<void> {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch {}
     Alert.alert(
-      'بون التجهيز والميزان (Xprinter 80mm) 🖨️',
-      'تم تجهيز ونسخ بون الأصناف والميزان بنجاح بدون أسعار، وهو جاهز للطباعة المباشرة على طابعة البون الحرارية.'
+      'بون تجهيز الطلب (Xprinter 80mm) 🖨️',
+      'تم تجهيز ونسخ بون الأصناف بنجاح بدون أسعار، وهو جاهز للطباعة المباشرة على طابعة البون الحرارية.'
     );
   } catch (e: any) {
     Alert.alert('طباعة البون', e?.message || 'تعذر استدعاء الطباعة');

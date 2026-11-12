@@ -1529,7 +1529,7 @@ ${itemsSummary}
       >
         <Ionicons name="receipt-outline" size={15} color={C.blue} />
         <Txt style={{ fontSize: 12, color: C.blue, fontWeight: '900' }}>
-          طباعة بون التجهيز والميزان (Xprinter 80mm) 🖨️
+          طباعة بون التجهيز (Xprinter 80mm) 🖨️
         </Txt>
       </Pressable>
     </View>
