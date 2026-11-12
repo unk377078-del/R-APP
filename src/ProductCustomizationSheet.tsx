@@ -126,7 +126,9 @@ export function ProductCustomizationSheet({ product, onAdd, initialLine }: any) 
           <Txt style={{ color: C.action, fontWeight: '900', marginTop: 4, textAlign: 'center', fontSize: 17 }}>
             {product.unit === 'للقطعة' && product.piecePrice ? `${product.piecePrice} ج.م` : `${product.price} ج.م`}
           </Txt>
-          <Txt style={[s.small, { textAlign: 'center', marginTop: 2 }]}>{product.subtitle}</Txt>
+          {!!product.subtitle?.trim() && (
+            <Txt style={[s.small, { textAlign: 'center', marginTop: 2 }]}>{product.subtitle.trim()}</Txt>
+          )}
           {!!product.weightNote && (
             <Txt style={[s.small, { marginTop: 4, color: C.muted, textAlign: 'center' }]}>{product.weightNote}</Txt>
           )}

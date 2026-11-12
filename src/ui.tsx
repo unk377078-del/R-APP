@@ -315,19 +315,20 @@ export function ProductCard({product,onPress,onAdd,compact=false,inCartQty=0}:an
             numberOfLines={2}>
             {product.name}
           </Txt>
-          <Txt
-            style={{
-              fontSize: isSmallScreen ? 10 : 11,
-              color: C.muted,
-              minHeight: 28,
-              lineHeight: 14,
-              textAlign: 'right',
-              width: '100%',
-              marginTop: 1,
-            }}
-            numberOfLines={2}>
-            {product.subtitle || 'طازج ومذبوح يومياً'}
-          </Txt>
+          {!!product.subtitle?.trim() && (
+            <Txt
+              style={{
+                fontSize: isSmallScreen ? 10 : 11,
+                color: C.muted,
+                lineHeight: 14,
+                textAlign: 'right',
+                width: '100%',
+                marginTop: 2,
+              }}
+              numberOfLines={2}>
+              {product.subtitle.trim()}
+            </Txt>
+          )}
         </Pressable>
 
         {/* Pricing & Call-to-Action Bar */}
@@ -447,9 +448,11 @@ export function ProductListCard({product,onPress,onAdd,inCartQty=0}:any){
           <Txt numberOfLines={1} style={{fontFamily:'Rubik_700Bold',fontSize:isSmallScreen?16:17.5,fontWeight:'900',color:C.navy,textAlign:'right',width:'100%'}}>
             {product.name}
           </Txt>
-          <Txt numberOfLines={2} style={{fontSize:isSmallScreen?10.5:11.5,color:C.muted,lineHeight:16,marginTop:2,textAlign:'right',width:'100%'}}>
-            {product.subtitle||'دواجن طازجة ومذبوحة يومياً بأعلى معايير النظافة'}
-          </Txt>
+          {!!product.subtitle?.trim() && (
+            <Txt numberOfLines={2} style={{fontSize:isSmallScreen?10.5:11.5,color:C.muted,lineHeight:16,marginTop:2,textAlign:'right',width:'100%'}}>
+              {product.subtitle.trim()}
+            </Txt>
+          )}
 
           <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',width:'100%',marginTop:9}}>
             <View style={{alignItems:'flex-start'}}>
