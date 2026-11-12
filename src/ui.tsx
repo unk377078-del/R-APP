@@ -21,6 +21,54 @@ export function displayUnit(unit:string=''):string{
   return clean.replace(/^لل?/,'')||clean;
 }
 
+export function formatItemNaturalTitle(item: { name?: string; quantity?: number | string; unit?: string; size?: string }): string {
+  if (!item) return '';
+  const numQty = Number(item.quantity);
+  const qty = (!isNaN(numQty) && numQty > 0)
+    ? (Number.isInteger(numQty) ? String(numQty) : String(numQty))
+    : (item.quantity || 1);
+
+  const rawUnit = (item.unit || '').trim();
+  const cleanName = (item.name || '').trim();
+  const rawSize = (item.size || '').trim();
+
+  // Omit default/standard size indicators like 'عادي', 'Standard', 'standard'
+  const isDefaultSize = !rawSize || /^(عادي|standard|الافتراضي)$/i.test(rawSize);
+  const sizeSuffix = !isDefaultSize ? ` (${rawSize})` : '';
+
+  // 1. Kilo units (للكيلو, كيلو, كجم, ك, KILO, kilo) -> "1.5 كيلو شيش"
+  if (/^(للكيلو|كيلو|كجم|ك|kilo)$/i.test(rawUnit)) {
+    return `${qty} كيلو ${cleanName}${sizeSuffix}`;
+  }
+
+  // 2. Count / Pieces / Items (للقطعة, قطعة, عدد, دبابيس) -> "عدد 8 دبوس"
+  if (/^(للقطعة|قطعة|قطع|عدد|حبة|piece)$/i.test(rawUnit)) {
+    return `عدد ${qty} ${cleanName}${sizeSuffix}`;
+  }
+
+  // 3. Birds / Chickens / Ducks (للطائر, طائر, دجاجة, فرخة, بطة) -> "عدد 1 فرخة بيضاء"
+  if (/^(للطائر|طائر|دجاجة|فرخة|بطة|bird)$/i.test(rawUnit)) {
+    return `عدد ${qty} ${cleanName}${sizeSuffix}`;
+  }
+
+  // 4. Pairs (للجوز, جوز, pair) -> "عدد 2 جوز حمام"
+  if (/^(للجوز|جوز|pair)$/i.test(rawUnit)) {
+    return `عدد ${qty} جوز ${cleanName}${sizeSuffix}`;
+  }
+
+  // 5. Plates (للطبق, طبق, plate) -> "عدد 1 طبق كبد وقوانص"
+  if (/^(للطبق|طبق|plate)$/i.test(rawUnit)) {
+    return `عدد ${qty} طبق ${cleanName}${sizeSuffix}`;
+  }
+
+  // Fallback: If unit is empty or contains عدد
+  if (!rawUnit || /عدد/i.test(rawUnit)) {
+    return `عدد ${qty} ${cleanName}${sizeSuffix}`;
+  }
+
+  return `${qty} ${rawUnit} ${cleanName}${sizeSuffix}`;
+}
+
 function withoutEmoji(value:any):any{
   if(typeof value==='string')return value.replace(/[\u{1F000}-\u{1FAFF}\u{1F1E6}-\u{1F1FF}\u{2600}-\u{27BF}\u{FE0F}\u{200D}]/gu,'');
   if(Array.isArray(value))return value.map(withoutEmoji);

@@ -2,6 +2,7 @@ import { Platform, Alert } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import { Order } from './models';
+import { formatItemNaturalTitle } from './ui';
 
 /**
  * Filter out default whole/intact preparations so "سليم" is NOT printed on the receipt.
@@ -36,17 +37,16 @@ export function generateOrderInvoiceHtml(order: Order): string {
   const isPickup = (order.address || '').includes('فرع') && !(order.address || '').includes('·');
   const channelText = isPickup ? `استلام: ${order.address}` : 'توصيل منزلي';
 
-  const itemsHtml = (order.items || []).map((item, index) => {
+  const itemsHtml = (order.items || []).map((item) => {
     const prepDetails = getPrintablePrep(item.selectedPrep, item.selectedSubOption);
 
     return `
       <div class="item-row">
         <div class="item-top">
-          <span class="item-title"><strong>#${index + 1} ${item.name}</strong></span>
-          <span class="item-qty"><strong>${item.quantity} ${item.unit || 'ك'}</strong>${item.size ? ` (${item.size})` : ''}</span>
+          <span class="item-title"><strong>- ${formatItemNaturalTitle(item)}</strong></span>
         </div>
-        ${prepDetails ? `<div class="item-prep">✂️ ${prepDetails}</div>` : ''}
-        ${item.note ? `<div class="item-note">⚠ ${item.note}</div>` : ''}
+        ${prepDetails ? `<div class="item-prep">✂️ التجهيز: ${prepDetails}</div>` : ''}
+        ${item.note ? `<div class="item-note">⚠ ملاحظة: ${item.note}</div>` : ''}
         <div class="item-scale">
           <span class="scale-lbl">الوزن الفعلي:</span>
           <span class="scale-line">[ .................... كجم ]</span>
@@ -198,35 +198,26 @@ export function generateOrderInvoiceHtml(order: Order): string {
     }
     .item-top {
       display: flex;
-      justify-content: space-between;
+      justify-content: flex-start;
       align-items: baseline;
-      font-size: 13px;
+      font-size: 13.5px;
     }
     .item-title {
       font-weight: 900;
       color: #000;
-    }
-    .item-qty {
-      font-weight: 900;
-      font-size: 12.5px;
-      color: #000;
-      background: #f1f5f9;
-      padding: 1px 5px;
-      border-radius: 3px;
-      border: 1px solid #cbd5e1;
     }
     .item-prep {
       font-size: 11.5px;
       font-weight: bold;
       color: #111;
       margin-top: 2px;
-      padding-right: 4px;
+      padding-right: 8px;
     }
     .item-note {
       font-size: 10.5px;
       color: #222;
       margin-top: 1px;
-      padding-right: 4px;
+      padding-right: 8px;
     }
     .item-scale {
       display: flex;
@@ -415,12 +406,12 @@ export async function printFullOrder(order: Order): Promise<void> {
       order.note ? `ملاحظة: ${order.note}` : null,
       `--------------------------------`,
       `الأصناف والتجهيز:`,
-      ...(order.items || []).map((it, i) => {
+      ...(order.items || []).map((it) => {
         const prep = getPrintablePrep(it.selectedPrep, it.selectedSubOption);
         return [
-          `#${i + 1} ${it.name} [ ${it.quantity} ${it.unit || 'ك'}${it.size ? ` · ${it.size}` : ''} ]`,
-          prep ? `   ✂️ ${prep}` : null,
-          it.note ? `   ⚠ ${it.note}` : null,
+          `- ${formatItemNaturalTitle(it)}`,
+          prep ? `   ✂️ التجهيز: ${prep}` : null,
+          it.note ? `   ⚠ ملاحظة: ${it.note}` : null,
           `   [ الوزن: ............ كجم ]`,
         ].filter(Boolean).join('\n');
       }),

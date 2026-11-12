@@ -12,7 +12,7 @@ import { FastImage } from './FastImage';
 import { fetchCloudMediaLibrary, addMediaToCloudLibrary, deleteMediaFromCloudLibrary, CloudMediaItem } from './cloudMedia';
 import { refreshFirestoreData, subscribeOrders, saveShowcaseToFirestore, saveStoriesToFirestore } from './firebaseStore';
 import { changeAdminPassword } from './adminAuth';
-import { Button,Chip,Field,ScreenTitle,Txt } from './ui';
+import { Button,Chip,Field,ScreenTitle,Txt,formatItemNaturalTitle } from './ui';
 import { birdPrepGroups,birdPrepText } from './preparation';
 import { playNewOrderSound } from './soundAlert';
 import { DashboardChartsTab, SummaryCharts } from './DashboardCharts';
@@ -1150,8 +1150,8 @@ function OrderAdmin({ order, onStatus }: any) {
       .map((item: any, i: number) => {
         let prepStr = item.selectedPrep || '';
         if (item.selectedSubOption) prepStr += ` (${item.selectedSubOption})`;
-        if (item.size) prepStr += ` [حجم: ${item.size}]`;
-        let line = `${i + 1}. ${item.name} · ${item.quantity} ${item.unit}`;
+        if (item.size && item.size !== 'عادي') prepStr += ` [حجم: ${item.size}]`;
+        let line = `- ${formatItemNaturalTitle(item)}`;
         if (prepStr) line += `\n   ✂ التجهيز: ${prepStr}`;
         if (item.note) line += `\n   ⚠ ملاحظة: ${item.note}`;
         return line;
@@ -1202,7 +1202,7 @@ function OrderAdmin({ order, onStatus }: any) {
     }
 
     const itemsSummary = (order.items || [])
-      .map((it: any) => `• ${it.name} (${it.quantity} ${it.unit})${it.selectedPrep ? ` - ${it.selectedPrep}` : ''}`)
+      .map((it: any) => `• ${formatItemNaturalTitle(it)}${it.selectedPrep ? ` - ${it.selectedPrep}` : ''}`)
       .join('\n');
 
     const text = `السلام عليكم ورحمة الله أستاذ ${order.customer || ''} 🌸
@@ -1481,10 +1481,9 @@ ${itemsSummary}
           <Txt style={{ fontWeight: '900', marginBottom: 6, textAlign: 'right' }}>أصناف الطلب (${order.items?.length || 0}):</Txt>
           {order.items.map((item: any, index: number) => (
             <View key={item.id || index} style={{ paddingVertical: 7, borderBottomWidth: 1, borderColor: C.line }}>
-              <Txt style={{ fontWeight: '800', textAlign: 'right' }}>
-                {item.name} · {item.quantity} {item.unit}
+              <Txt style={{ fontWeight: '800', textAlign: 'right', fontSize: 14 }}>
+                - {formatItemNaturalTitle(item)}
               </Txt>
-              {!!item.size && <Txt style={[s.small, { textAlign: 'right' }]}>الحجم: {item.size}</Txt>}
               {!!item.selectedPrep && (
                 <Txt style={[s.small, { textAlign: 'right', color: C.green, fontWeight: '700' }]}>
                   ✂ التجهيز: {item.selectedPrep}
