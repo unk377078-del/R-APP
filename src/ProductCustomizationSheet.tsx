@@ -134,9 +134,7 @@ export function ProductCustomizationSheet({ product, onAdd, initialLine }: any) 
           )}
         </View>
 
-        <Txt style={s.section}>
-          {unit === 'للكيلو' && product.allowHalfUnit !== false ? 'الكمية · بخطوة نصف كيلو' : 'الكمية'}
-        </Txt>
+        <Txt style={s.section}>الكمية</Txt>
         <View
           style={[
             s.card,
