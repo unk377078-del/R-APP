@@ -219,7 +219,7 @@ export function ProductCard({product,onPress,onAdd,compact=false,inCartQty=0}:an
   const {width}=useWindowDimensions();
   const isSmallScreen=width<360;
   const buttonSize=compact?(isSmallScreen?32:36):(isSmallScreen?36:40);
-  const cardPadding=isSmallScreen?10:13;
+  const cardPadding=isSmallScreen?8:11;
   const cardScale=useRef(new Animated.Value(1)).current;
   const btnScale=useRef(new Animated.Value(1)).current;
 
@@ -244,8 +244,8 @@ export function ProductCard({product,onPress,onAdd,compact=false,inCartQty=0}:an
   const badgeBg = product.badgeColor || (isOffer ? '#DC2626' : '#15803D');
 
   return (
-    <Animated.View style={{width:compact?(isSmallScreen?155:175):'48%',transform:[{scale:cardScale}],marginBottom:13}}>
-      <View style={[s.card,{width:'100%',padding:cardPadding,borderRadius:22,elevation:compact?3:2,marginBottom:0}]}>
+    <Animated.View style={{width:compact?(isSmallScreen?150:168):'48%',transform:[{scale:cardScale}],marginBottom:10}}>
+      <View style={[s.card,{width:'100%',padding:cardPadding,borderRadius:20,elevation:compact?3:2,marginBottom:0}]}>
         <Pressable
           accessibilityRole="button"
           onPressIn={handlePressIn}
@@ -255,7 +255,7 @@ export function ProductCard({product,onPress,onAdd,compact=false,inCartQty=0}:an
             onPress?.();
           }}>
           {/* Product Image Frame */}
-          <View style={{height:compact?114:132,backgroundColor:C.surfaceAlt,borderRadius:18,alignItems:'center',justifyContent:'center',marginBottom:10,overflow:'hidden',borderWidth:1,borderColor:C.border,position:'relative'}}>
+          <View style={{height:compact?(isSmallScreen?100:110):(isSmallScreen?110:122),backgroundColor:C.surfaceAlt,borderRadius:16,alignItems:'center',justifyContent:'center',marginBottom:6,overflow:'hidden',borderWidth:1,borderColor:C.border,position:'relative'}}>
             {(() => {
               const hasCustomUri = typeof product.imageUri === 'string' && product.imageUri.trim().length > 5;
               const hasCustomUrl = typeof product.imageUrl === 'string' && product.imageUrl.trim().length > 5;
@@ -305,9 +305,8 @@ export function ProductCard({product,onPress,onAdd,compact=false,inCartQty=0}:an
             style={{
               fontFamily: 'Rubik_700Bold',
               fontWeight: '900',
-              fontSize: isSmallScreen ? 13.5 : 15,
-              minHeight: 38,
-              lineHeight: 19,
+              fontSize: isSmallScreen ? 13 : 14.5,
+              lineHeight: 18,
               color: C.navy,
               textAlign: 'right',
               width: '100%',
@@ -332,7 +331,7 @@ export function ProductCard({product,onPress,onAdd,compact=false,inCartQty=0}:an
         </Pressable>
 
         {/* Pricing & Call-to-Action Bar */}
-        <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginTop:9,width:'100%'}}>
+        <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginTop:5,width:'100%'}}>
           <View style={{alignItems:'flex-start'}}>
             <Txt style={{fontSize:isSmallScreen?13.5:15,fontWeight:'900',color:C.action,textAlign:'right'}}>
               {product.unit==='للقطعة'&&product.piecePrice?`${product.piecePrice} ج.م`:`${product.price} ج.م`}
@@ -375,7 +374,7 @@ export function ProductCard({product,onPress,onAdd,compact=false,inCartQty=0}:an
 export function ProductListCard({product,onPress,onAdd,inCartQty=0}:any){
   const {width}=useWindowDimensions();
   const isSmallScreen=width<360;
-  const imageSize=isSmallScreen?86:96;
+  const imageSize=isSmallScreen?76:84;
   const cardScale=useRef(new Animated.Value(1)).current;
   const btnScale=useRef(new Animated.Value(1)).current;
 
@@ -410,9 +409,9 @@ export function ProductListCard({product,onPress,onAdd,inCartQty=0}:any){
           Haptics.selectionAsync().catch(()=>{});
           onPress?.();
         }}
-        style={[s.card,{padding:12,flexDirection:'row-reverse',alignItems:'center',minHeight:118,marginBottom:0,borderRadius:22}]}>
+        style={[s.card,{padding:10,flexDirection:'row-reverse',alignItems:'center',minHeight:product.subtitle?.trim()?102:82,marginBottom:0,borderRadius:20}]}>
         {/* Image Frame */}
-        <View style={{width:imageSize,height:imageSize,borderRadius:18,borderWidth:1,borderColor:C.border,overflow:'hidden',backgroundColor:C.surfaceAlt,flexShrink:0,position:'relative'}}>
+        <View style={{width:imageSize,height:imageSize,borderRadius:16,borderWidth:1,borderColor:C.border,overflow:'hidden',backgroundColor:C.surfaceAlt,flexShrink:0,position:'relative'}}>
           <FastImage
             source={product.imageUri ? { uri: product.imageUri } : images[product.image] || images.chicken}
             resizeMode="cover"
@@ -445,16 +444,16 @@ export function ProductListCard({product,onPress,onAdd,inCartQty=0}:any){
             </View>
           )}
 
-          <Txt numberOfLines={1} style={{fontFamily:'Rubik_700Bold',fontSize:isSmallScreen?16:17.5,fontWeight:'900',color:C.navy,textAlign:'right',width:'100%'}}>
+          <Txt numberOfLines={1} style={{fontFamily:'Rubik_700Bold',fontSize:isSmallScreen?15:16.5,fontWeight:'900',color:C.navy,textAlign:'right',width:'100%'}}>
             {product.name}
           </Txt>
           {!!product.subtitle?.trim() && (
-            <Txt numberOfLines={2} style={{fontSize:isSmallScreen?10.5:11.5,color:C.muted,lineHeight:16,marginTop:2,textAlign:'right',width:'100%'}}>
+            <Txt numberOfLines={2} style={{fontSize:isSmallScreen?10.5:11.5,color:C.muted,lineHeight:15,marginTop:2,textAlign:'right',width:'100%'}}>
               {product.subtitle.trim()}
             </Txt>
           )}
 
-          <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',width:'100%',marginTop:9}}>
+          <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',width:'100%',marginTop:4}}>
             <View style={{alignItems:'flex-start'}}>
               <Txt style={{fontSize:isSmallScreen?14.5:16.5,fontWeight:'900',color:C.action,textAlign:'right'}}>
                 {product.unit==='للقطعة'&&product.piecePrice?`${product.piecePrice} ج.م`:`${product.price} ج.م`}
@@ -508,14 +507,13 @@ export function ProductListSkeleton({count=4}:{count?:number}){
   return (
     <View style={{gap:12}}>
       {Array.from({length:count}).map((_,index)=>(
-        <View key={index} style={[s.card,{padding:12,flexDirection:'row-reverse',alignItems:'center',minHeight:116,marginBottom:0}]}>
-          <SkeletonBox width={92} height={92} borderRadius={16}/>
-          <View style={{flex:1,marginEnd:12,alignItems:'flex-end',gap:8}}>
-            <SkeletonBox width={55} height={16} borderRadius={6}/>
-            <SkeletonBox width="80%" height={20} borderRadius={6}/>
-            <SkeletonBox width="55%" height={14} borderRadius={4}/>
-            <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',width:'100%',marginTop:6}}>
-              <SkeletonBox width={80} height={18} borderRadius={4}/>
+        <View key={index} style={[s.card,{padding:10,flexDirection:'row-reverse',alignItems:'center',minHeight:84,marginBottom:0}]}>
+          <SkeletonBox width={80} height={80} borderRadius={16}/>
+          <View style={{flex:1,marginEnd:12,alignItems:'flex-end',gap:6}}>
+            <SkeletonBox width={55} height={15} borderRadius={6}/>
+            <SkeletonBox width="75%" height={18} borderRadius={6}/>
+            <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',width:'100%',marginTop:4}}>
+              <SkeletonBox width={70} height={18} borderRadius={4}/>
               <SkeletonBox width={32} height={32} borderRadius={16}/>
             </View>
           </View>
@@ -529,10 +527,9 @@ export function ProductGridSkeleton({count=4}:{count?:number}){
   return (
     <View style={{flexDirection:'row-reverse',flexWrap:'wrap',justifyContent:'space-between'}}>
       {Array.from({length:count}).map((_,index)=>(
-        <View key={index} style={[s.card,{width:'48%',padding:12,marginBottom:12,borderRadius:20}]}>
-          <SkeletonBox width="100%" height={125} borderRadius={16} style={{marginBottom:9}}/>
+        <View key={index} style={[s.card,{width:'48%',padding:10,marginBottom:10,borderRadius:20}]}>
+          <SkeletonBox width="100%" height={116} borderRadius={16} style={{marginBottom:6}}/>
           <SkeletonBox width="75%" height={18} borderRadius={6} style={{marginBottom:6,alignSelf:'flex-end'}}/>
-          <SkeletonBox width="50%" height={13} borderRadius={4} style={{marginBottom:10,alignSelf:'flex-end'}}/>
           <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginTop:4,width:'100%'}}>
             <SkeletonBox width={60} height={18} borderRadius={6}/>
             <SkeletonBox width={36} height={36} borderRadius={18}/>
