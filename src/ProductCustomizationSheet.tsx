@@ -10,7 +10,7 @@ import {
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { CartLine, Product } from './models';
 import { C, isDarkMode, s } from './theme';
-import { Button, Chip, Field, Txt, displayUnit } from './ui';
+import { Button, Chip, Field, Txt, displayUnit, getProductImageSource } from './ui';
 import { getProductPrepGroups } from './preparation';
 import { images } from './nativeAssets';
 import { FastImage } from './FastImage';
@@ -87,21 +87,28 @@ export function ProductCustomizationSheet({ product, onAdd, initialLine }: any) 
   const selectedLabel = selectedOption.split(' — ')[0] || selectedSubOption;
   const selection = selectedPrep ? [activeGroup?.label || selectedPrep, ...(selectedLabel ? [selectedLabel] : [])] : [];
   const unitPrice = unit === 'للقطعة' && product.piecePrice ? product.piecePrice : product.price;
-
-  const hasCustomUri = typeof product.imageUri === 'string' && product.imageUri.trim().length > 5;
-  const hasCustomUrl = typeof product.imageUrl === 'string' && product.imageUrl.trim().length > 5;
-  const localImg = images[product.image];
-  const productImgSource = hasCustomUri
-    ? { uri: product.imageUri.trim() }
-    : hasCustomUrl
-    ? { uri: product.imageUrl.trim() }
-    : localImg || (cloudImages[product.image] ? { uri: cloudImages[product.image] } : images.chicken);
+  const productImgSource = getProductImageSource(product);
 
   return (
     <View style={{ flex: 1, backgroundColor: C.cream }}>
       <ScrollView contentContainerStyle={[s.scroll, { paddingBottom: 24 }]}>
         <View style={[s.card, { alignItems: 'center', padding: 20 }]}>
-          <View style={{ width: '100%', height: 180, borderRadius: 18, overflow: 'hidden', backgroundColor: C.surfaceAlt, marginBottom: 12 }}>
+          <View
+            style={{
+              width: '100%',
+              height: 180,
+              borderRadius: 18,
+              overflow: 'hidden',
+              backgroundColor: isDarkMode() ? '#172234' : '#FFFFFF',
+              borderWidth: 1,
+              borderColor: isDarkMode() ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+              marginBottom: 12,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: isDarkMode() ? 0.35 : 0.05,
+              shadowRadius: 5,
+              elevation: 2,
+            }}>
             <FastImage
               source={productImgSource}
               fallbackSource={images.chicken}
@@ -179,7 +186,7 @@ export function ProductCustomizationSheet({ product, onAdd, initialLine }: any) 
         {product.allowSellingByKilo !== false && product.allowSellingByPiece !== false && (
           <>
             <Txt style={s.section}>طريقة البيع</Txt>
-            <View style={[s.card, { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 8, padding: 12 }]}>
+            <View style={[s.card, { flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: 12 }]}>
               {['للكيلو', 'للقطعة'].map((x: string) => (
                 <Chip key={x} label={x === 'للكيلو' ? 'بالكيلو' : 'بالقطعة'} selected={unit === x} onPress={() => { setUnit(x); setQty(1); }} />
               ))}
@@ -190,7 +197,7 @@ export function ProductCustomizationSheet({ product, onAdd, initialLine }: any) 
         {product.sizes && product.sizes.length > 0 && (
           <>
             <Txt style={s.section}>اختيار الحجم</Txt>
-            <View style={[s.card, { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 8, padding: 12 }]}>
+            <View style={[s.card, { flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: 12 }]}>
               {product.sizes.map((x: string) => (
                 <Chip key={x} label={x} selected={size === x} onPress={() => setSize(x)} />
               ))}
@@ -237,46 +244,49 @@ export function ProductCustomizationSheet({ product, onAdd, initialLine }: any) 
                   setSelectedPrep(group.type);
                   const firstOpt = group.subOptions?.[0] || '';
                   setSelectedSubOption(firstOpt);
-                  if (firstOpt) {
-                    const [optLabel, optDesc] = firstOpt.split(' — ');
-                    if (optDesc) setPrepInfo({ label: optLabel, description: optDesc });
-                  }
                 }}
                 style={{
                   minHeight: 64,
-                  paddingHorizontal: 15,
-                  flexDirection: 'row-reverse',
+                  paddingHorizontal: 16,
+                  flexDirection: 'row',
                   alignItems: 'center',
-                  gap: 12,
+                  justifyContent: 'space-between',
                 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+                  <View
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 14,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: active ? (isDark ? 'rgba(21,128,61,0.3)' : '#DCFCE7') : C.surfaceAlt,
+                    }}>
+                    <Ionicons name={icon as any} size={20} color={active ? C.green : C.navy} />
+                  </View>
+                  <View style={{ flex: 1, alignItems: 'flex-start' }}>
+                    <Txt style={{ fontWeight: '900', fontSize: 16, color: active ? C.green : C.ink, textAlign: 'right' }}>
+                      {group.label}
+                    </Txt>
+                    <Txt style={{ fontSize: 11, color: C.muted, textAlign: 'right', marginTop: 1 }}>
+                      {group.subOptions?.length ? `${group.subOptions.length} اختيارات متاحة` : 'تجهيز أساسي'}
+                    </Txt>
+                  </View>
+                </View>
                 <Ionicons name={active ? 'checkmark-circle' : 'ellipse-outline'} size={23} color={active ? C.green : C.muted} />
-                <View
-                  style={{
-                    width: 38,
-                    height: 38,
-                    borderRadius: 13,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: active ? (isDark ? 'rgba(21,128,61,0.3)' : '#DCFCE7') : C.surfaceAlt,
-                  }}>
-                  <Ionicons name={icon as any} size={20} color={active ? C.green : C.navy} />
-                </View>
-                <View style={{ flex: 1, alignItems: 'flex-end' }}>
-                  <Txt style={{ fontWeight: '900', fontSize: 15.5, color: active ? C.green : C.ink, textAlign: 'right' }}>
-                    {group.label}
-                  </Txt>
-                  <Txt style={{ fontSize: 10, color: C.muted, textAlign: 'right' }}>
-                    {group.subOptions?.length ? group.subOptions.length + ' اختيارات متاحة' : 'تجهيز أساسي'}
-                  </Txt>
-                </View>
               </Pressable>
 
               {active && !!group.subOptions?.length && (
-                <View style={{ borderTopWidth: 1, borderColor: isDark ? 'rgba(21,128,61,0.2)' : '#DCFCE7', padding: 12 }}>
-                  <Txt style={{ fontSize: 11, fontWeight: '900', color: C.navy, marginBottom: 8, textAlign: 'right' }}>
-                    حدد التفصيلة المطلوبة (اضغط لعرض الشرح)
-                  </Txt>
-                  <View style={{ flexDirection: 'column', gap: 8 }}>
+                <View style={{ borderTopWidth: 1, borderColor: isDark ? 'rgba(21,128,61,0.2)' : '#DCFCE7', padding: 14 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                    <Txt style={{ fontSize: 12, fontWeight: '900', color: C.navy, textAlign: 'right' }}>
+                      حدد التفصيلة المطلوبة
+                    </Txt>
+                    <Txt style={{ fontSize: 11, color: C.muted, textAlign: 'left' }}>
+                      الشرح موضح أدناه ⓘ
+                    </Txt>
+                  </View>
+                  <View style={{ flexDirection: 'column', gap: 9 }}>
                     {group.subOptions.map((option: string) => {
                       const chosen = selectedSubOption === option;
                       const [optLabel, optDesc] = option.split(' — ');
@@ -287,28 +297,26 @@ export function ProductCustomizationSheet({ product, onAdd, initialLine }: any) 
                           accessibilityState={{ selected: chosen }}
                           onPress={() => {
                             setSelectedSubOption(option);
-                            if (optDesc) {
-                              setPrepInfo({ label: optLabel, description: optDesc });
-                            }
                           }}
                           style={{
-                            minHeight: 46,
+                            minHeight: 54,
                             paddingHorizontal: 14,
-                            paddingVertical: 8,
-                            borderRadius: 14,
+                            paddingVertical: 10,
+                            borderRadius: 16,
                             borderWidth: 1.5,
                             borderColor: chosen ? C.green : C.border,
-                            backgroundColor: chosen ? C.green : C.surfaceAlt,
-                            flexDirection: 'row-reverse',
+                            backgroundColor: chosen ? (isDark ? '#14532D' : '#15803D') : C.surfaceAlt,
+                            flexDirection: 'row',
                             alignItems: 'center',
                             justifyContent: 'space-between',
                           }}>
-                          <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                          {/* Right side: Option Title & Descriptive Subtitle */}
+                          <View style={{ flex: 1, alignItems: 'flex-start', paddingEnd: 10 }}>
                             <Txt
                               style={{
-                                fontSize: 13,
+                                fontSize: 14,
                                 fontWeight: chosen ? '900' : '700',
-                                color: chosen ? C.white : C.ink,
+                                color: chosen ? C.white : C.navy,
                                 textAlign: 'right',
                               }}>
                               {optLabel}
@@ -316,30 +324,56 @@ export function ProductCustomizationSheet({ product, onAdd, initialLine }: any) 
                             {!!optDesc && (
                               <Txt
                                 style={{
-                                  fontSize: 10.5,
-                                  marginTop: 2,
-                                  color: chosen ? 'rgba(255,255,255,0.88)' : C.muted,
+                                  fontSize: 11,
+                                  marginTop: 3,
+                                  lineHeight: 16,
+                                  color: chosen ? 'rgba(255,255,255,0.92)' : C.muted,
                                   textAlign: 'right',
                                 }}>
                                 {optDesc}
                               </Txt>
                             )}
                           </View>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+
+                          {/* Left side: Info Button (to view full popup) & Selection Checkmark */}
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                             {!!optDesc && (
                               <Pressable
                                 accessibilityRole="button"
                                 accessibilityLabel={`شرح تفصيلة ${optLabel}`}
-                                hitSlop={8}
-                                onPress={() => setPrepInfo({ label: optLabel, description: optDesc })}>
+                                hitSlop={10}
+                                onPress={(e) => {
+                                  e?.stopPropagation?.();
+                                  setPrepInfo({ label: optLabel, description: optDesc });
+                                }}
+                                style={{
+                                  width: 32,
+                                  height: 32,
+                                  borderRadius: 16,
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  backgroundColor: chosen ? 'rgba(255,255,255,0.2)' : 'rgba(14,47,101,0.08)',
+                                }}>
                                 <Ionicons
-                                  name="information-circle-outline"
+                                  name="information-circle"
                                   size={19}
-                                  color={chosen ? 'rgba(255,255,255,0.9)' : C.navy}
+                                  color={chosen ? C.white : C.navy}
                                 />
                               </Pressable>
                             )}
-                            {chosen && <Ionicons name="checkmark-circle" size={18} color={C.white} />}
+                            <View
+                              style={{
+                                width: 24,
+                                height: 24,
+                                borderRadius: 12,
+                                borderWidth: chosen ? 0 : 1.5,
+                                borderColor: C.border,
+                                backgroundColor: chosen ? C.white : 'transparent',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}>
+                              {chosen && <Ionicons name="checkmark" size={16} color={C.green} />}
+                            </View>
                           </View>
                         </Pressable>
                       );
@@ -363,7 +397,7 @@ export function ProductCustomizationSheet({ product, onAdd, initialLine }: any) 
           backgroundColor: C.solidSurface,
           borderTopWidth: 1,
           borderColor: C.border,
-          flexDirection: 'row-reverse',
+          flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: 14,

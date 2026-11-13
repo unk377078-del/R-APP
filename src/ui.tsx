@@ -6,7 +6,7 @@ import { Product } from './models';
 import { C,s,isDarkMode } from './theme';
 import { images } from './nativeAssets';
 import { FastImage } from './FastImage';
-import { cloudImages } from './cloudAssets';
+import { cloudImages, toCdnUrl } from './cloudAssets';
 
 export const FontScaleContext=createContext(1);
 
@@ -72,6 +72,47 @@ export function formatItemNaturalTitle(item: { name?: string; quantity?: number 
   }
 
   return `${qty} ${displayUnit(rawUnit)} ${cleanName}${sizeSuffix}`;
+}
+
+export function getProductImageSource(product: any): any {
+  if (!product) return images.chicken;
+  const uri = typeof product.imageUri === 'string' && product.imageUri.trim().length > 5 ? product.imageUri.trim() : null;
+  const url = typeof product.imageUrl === 'string' && product.imageUrl.trim().length > 5 ? product.imageUrl.trim() : null;
+  if (uri) return { uri: toCdnUrl(uri, 450) };
+  if (url) return { uri: toCdnUrl(url, 450) };
+
+  const key = product.image || '';
+  if (images[key]) return images[key];
+  if (cloudImages[key]) return { uri: toCdnUrl(cloudImages[key], 450) };
+
+  const prefixed = `product-${key}`;
+  if (images[prefixed]) return images[prefixed];
+  if (cloudImages[prefixed]) return { uri: toCdnUrl(cloudImages[prefixed], 450) };
+
+  const stripped = key.replace(/^product-/, '');
+  if (images[stripped]) return images[stripped];
+  if (cloudImages[stripped]) return { uri: toCdnUrl(cloudImages[stripped], 450) };
+
+  // Smart semantic fallback by product name and category
+  const name = product.name || '';
+  if (/بيض أحمر|بيض احمر/.test(name)) return { uri: toCdnUrl(cloudImages['product-red-eggs'], 450) };
+  if (/بيض/.test(name)) return { uri: toCdnUrl(cloudImages['product-eggs-bldi'], 450) };
+  if (/سمن/.test(name)) return { uri: toCdnUrl(cloudImages['product-smna'], 450) };
+  if (/حمام/.test(name)) return images.pigeon || { uri: toCdnUrl(cloudImages['product-pigeon'], 450) };
+  if (/سمان/.test(name)) return { uri: toCdnUrl(cloudImages['product-quail'], 450) };
+  if (/بط/.test(name) || product.category === 'بط') return images.duck || { uri: toCdnUrl(cloudImages['product-duck-fallahi'], 450) };
+  if (/رومي/.test(name) || product.category === 'رومي') return { uri: toCdnUrl(cloudImages['product-rosto-turkey'], 450) };
+  if (/دبوس|دبابيس/.test(name)) return images.drumsticks || { uri: toCdnUrl(cloudImages['drumsticks'], 450) };
+  if (/جناح|أجنحة|اجنحة/.test(name)) return images.wings || { uri: toCdnUrl(cloudImages['product-wing'], 450) };
+  if (/شيش/.test(name)) return images.shish || { uri: toCdnUrl(cloudImages['product-shish'], 450) };
+  if (/بانيه|بانية|فيليه/.test(name)) return images.panee || { uri: toCdnUrl(cloudImages['product-panee'], 450) };
+  if (/كبد|قوانص/.test(name)) return { uri: toCdnUrl(cloudImages['product-liver'], 450) };
+  if (/أرانب|ارانب/.test(name)) return { uri: toCdnUrl(cloudImages['product-rabbit'], 450) };
+  if (/برجر/.test(name)) return { uri: toCdnUrl(cloudImages['product-burger'], 450) };
+  if (/كفتة|كفته/.test(name)) return { uri: toCdnUrl(cloudImages['product-kofta-chicken'], 450) };
+  if (/ستربس|استربس/.test(name)) return { uri: toCdnUrl(cloudImages['product-strips'], 450) };
+
+  return images.chicken;
 }
 
 function withoutEmoji(value:any):any{
@@ -259,26 +300,31 @@ export function ProductCard({product,onPress,onAdd,compact=false,inCartQty=0}:an
             Haptics.selectionAsync().catch(()=>{});
             onPress?.();
           }}>
-          {/* Product Image Frame */}
-          <View style={{height:compact?(isSmallScreen?100:110):(isSmallScreen?110:122),backgroundColor:C.surfaceAlt,borderRadius:16,alignItems:'center',justifyContent:'center',marginBottom:6,overflow:'hidden',borderWidth:1,borderColor:C.border,position:'relative'}}>
-            {(() => {
-              const hasCustomUri = typeof product.imageUri === 'string' && product.imageUri.trim().length > 5;
-              const hasCustomUrl = typeof product.imageUrl === 'string' && product.imageUrl.trim().length > 5;
-              const localImg = images[product.image];
-              const source = hasCustomUri
-                ? { uri: product.imageUri.trim() }
-                : hasCustomUrl
-                ? { uri: product.imageUrl.trim() }
-                : localImg || (cloudImages[product.image] ? { uri: cloudImages[product.image] } : images.chicken);
-              return (
-                <FastImage
-                  source={source}
-                  fallbackSource={images.chicken}
-                  resizeMode="cover"
-                  style={{ width: '100%', height: '100%' }}
-                />
-              );
-            })()}
+          {/* Product Image Frame (Clean Studio Light & Shadow) */}
+          <View
+            style={{
+              height: compact ? (isSmallScreen ? 100 : 110) : (isSmallScreen ? 110 : 122),
+              backgroundColor: isDarkMode() ? '#172234' : '#FFFFFF',
+              borderRadius: 16,
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 6,
+              overflow: 'hidden',
+              borderWidth: 1,
+              borderColor: isDarkMode() ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+              position: 'relative',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: isDarkMode() ? 0.3 : 0.04,
+              shadowRadius: 3,
+              elevation: 2,
+            }}>
+            <FastImage
+              source={getProductImageSource(product)}
+              fallbackSource={images.chicken}
+              resizeMode="cover"
+              style={{ width: '100%', height: '100%' }}
+            />
 
             {/* In-Cart Pill Badge */}
             {inCartQty > 0 && (
@@ -415,10 +461,27 @@ export function ProductListCard({product,onPress,onAdd,inCartQty=0}:any){
           onPress?.();
         }}
         style={[s.card,{padding:10,flexDirection:'row-reverse',alignItems:'center',minHeight:product.subtitle?.trim()?102:82,marginBottom:0,borderRadius:20}]}>
-        {/* Image Frame */}
-        <View style={{width:imageSize,height:imageSize,borderRadius:16,borderWidth:1,borderColor:C.border,overflow:'hidden',backgroundColor:C.surfaceAlt,flexShrink:0,position:'relative'}}>
+        {/* Image Frame (Studio Clean Light & Shadow) */}
+        <View
+          style={{
+            width: imageSize,
+            height: imageSize,
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: isDarkMode() ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+            overflow: 'hidden',
+            backgroundColor: isDarkMode() ? '#172234' : '#FFFFFF',
+            flexShrink: 0,
+            position: 'relative',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: isDarkMode() ? 0.3 : 0.04,
+            shadowRadius: 3,
+            elevation: 2,
+          }}>
           <FastImage
-            source={product.imageUri ? { uri: product.imageUri } : images[product.image] || images.chicken}
+            source={getProductImageSource(product)}
+            fallbackSource={images.chicken}
             resizeMode="cover"
             style={{ width: '100%', height: '100%' }}
           />
