@@ -27,7 +27,8 @@ export function ProductCustomizationSheet({ product, onAdd, initialLine }: any) 
   const [note, setNote] = useState<string>(initialLine?.note || '');
   const [prepInfo, setPrepInfo] = useState<{ label: string; description: string } | null>(null);
 
-  const step = unit === 'للكيلو' && product.allowHalfUnit !== false ? 0.5 : 1;
+  const isWholeLivingBird = /حي|طائر كامل/.test(product.name) && product.category === 'فراخ';
+  const step = product.allowHalfUnit !== false && !isWholeLivingBird ? 0.5 : 1;
 
   const defaults =
     product.category === 'فراخ' || product.category === 'بط'

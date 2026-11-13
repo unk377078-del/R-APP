@@ -1582,7 +1582,7 @@ function ProductAdmin({product,onChange,onDelete,badges=[],onPickCloud}:any){
    <Txt style={{fontWeight:'800',marginTop:4}}>القسم</Txt><ScrollView horizontal showsHorizontalScrollIndicator={false}>{categories.map((item:string)=><Chip key={item} label={item} selected={category===item} onPress={()=>setCategory(item)}/>)}</ScrollView>
    <Field label="سعر الكيلو الحالي" value={price} onChangeText={setPrice} keyboardType="decimal-pad"/><Field label="سعر الكيلو قبل الخصم" value={originalPrice} onChangeText={setOriginalPrice} keyboardType="decimal-pad"/>
    <Field label="سعر القطعة" value={piecePrice} onChangeText={setPiecePrice} keyboardType="decimal-pad"/><Field label="سعر القطعة قبل الخصم" value={originalPiecePrice} onChangeText={setOriginalPiecePrice} keyboardType="decimal-pad"/>
-   <Toggle label="السماح بالبيع بالكيلو" value={allowKilo} onChange={setAllowKilo}/><Toggle label="السماح بالبيع بالقطعة" value={allowPiece} onChange={setAllowPiece}/><Toggle label="السماح بنصف الكيلو" value={allowHalf} onChange={setAllowHalf}/>
+   <Toggle label="السماح بالبيع بالكيلو" value={allowKilo} onChange={setAllowKilo}/><Toggle label="السماح بالبيع بالقطعة" value={allowPiece} onChange={setAllowPiece}/><Toggle label="السماح بأنصاف الوحدات (0.5 كجم / جوز / طبق)" value={allowHalf} onChange={setAllowHalf}/>
    <Txt style={{fontWeight:'800',marginTop:8}}>اسم الوحدة للمنتج</Txt>
    <Txt style={s.small}>اختر وحدة أو اكتب اسماً مخصصاً (كيلو، قطعة، طبق، جوز، فرخة، علبة…):</Txt>
    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{gap:6,paddingVertical:6}}>

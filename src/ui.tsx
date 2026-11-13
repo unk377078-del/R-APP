@@ -41,24 +41,28 @@ export function formatItemNaturalTitle(item: { name?: string; quantity?: number 
     return `${qty} كيلو ${cleanName}${sizeSuffix}`;
   }
 
-  // 2. Count / Pieces / Items (للقطعة, قطعة, عدد, دبابيس) -> "عدد 8 دبوس"
-  if (/^(للقطعة|قطعة|قطع|عدد|حبة|piece)$/i.test(rawUnit)) {
-    return `عدد ${qty} ${cleanName}${sizeSuffix}`;
+  // 2. Pairs (للجوز, جوز, pair) -> "1.5 جوز حمام"
+  if (/^(للجوز|جوز|pair)$/i.test(rawUnit)) {
+    return `${qty} جوز ${cleanName}${sizeSuffix}`;
   }
 
-  // 3. Birds / Chickens / Ducks (للطائر, طائر, دجاجة, فرخة, بطة) -> "عدد 1 فرخة بيضاء"
+  // 3. Cartons / Trays (كرتونة, للكرتونة, طبق, للطبق) -> "1.5 كرتونة بيض" / "1.5 طبق كبد وقوانص"
+  if (/^(كرتونة|كرتونه|للكرتونة|للكرتونه|carton)$/i.test(rawUnit)) {
+    return `${qty} كرتونة ${cleanName}${sizeSuffix}`;
+  }
+  if (/^(للطبق|طبق|plate)$/i.test(rawUnit)) {
+    return `${qty} طبق ${cleanName}${sizeSuffix}`;
+  }
+
+  // 4. Count / Pieces / Items (للقطعة, قطعة, عدد, دبابيس) -> "عدد 8 دبوس" / "1.5 قطعة"
+  if (/^(للقطعة|قطعة|قطع|عدد|حبة|piece)$/i.test(rawUnit)) {
+    const isFractional = !Number.isInteger(numQty);
+    return isFractional ? `${qty} قطعة ${cleanName}${sizeSuffix}` : `عدد ${qty} ${cleanName}${sizeSuffix}`;
+  }
+
+  // 5. Birds / Chickens / Ducks (للطائر, طائر, دجاجة, فرخة, بطة) -> "عدد 1 فرخة بيضاء"
   if (/^(للطائر|طائر|دجاجة|فرخة|بطة|bird)$/i.test(rawUnit)) {
     return `عدد ${qty} ${cleanName}${sizeSuffix}`;
-  }
-
-  // 4. Pairs (للجوز, جوز, pair) -> "عدد 2 جوز حمام"
-  if (/^(للجوز|جوز|pair)$/i.test(rawUnit)) {
-    return `عدد ${qty} جوز ${cleanName}${sizeSuffix}`;
-  }
-
-  // 5. Plates (للطبق, طبق, plate) -> "عدد 1 طبق كبد وقوانص"
-  if (/^(للطبق|طبق|plate)$/i.test(rawUnit)) {
-    return `عدد ${qty} طبق ${cleanName}${sizeSuffix}`;
   }
 
   // Fallback: If unit is empty or contains عدد
@@ -66,7 +70,7 @@ export function formatItemNaturalTitle(item: { name?: string; quantity?: number 
     return `عدد ${qty} ${cleanName}${sizeSuffix}`;
   }
 
-  return `${qty} ${rawUnit} ${cleanName}${sizeSuffix}`;
+  return `${qty} ${displayUnit(rawUnit)} ${cleanName}${sizeSuffix}`;
 }
 
 function withoutEmoji(value:any):any{
