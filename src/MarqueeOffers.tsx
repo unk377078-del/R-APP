@@ -13,7 +13,7 @@ import { Product } from './models';
 import { FastImage } from './FastImage';
 import { images } from './nativeAssets';
 import { cloudImages, toCdnUrl } from './cloudAssets';
-import { Txt } from './ui';
+import { Txt, getProductImageSource } from './ui';
 
 interface MarqueeOffersProps {
   state: any;
@@ -41,11 +41,11 @@ function resolveProductImage(p: Product) {
   return images.chicken;
 }
 
-// Generous, taller card dimensions for comfortable multi-line offer text
+// Generous, comfortable card dimensions for offers
 const CARD_WIDTH = 320;
-const CARD_HEIGHT = 170;
+const CARD_HEIGHT = 156;
 const CARD_GAP = 14;
-const CARD_STEP = CARD_WIDTH + CARD_GAP; // 334px
+const CARD_STEP = CARD_WIDTH + CARD_GAP;
 
 export function MarqueeOffers({
   state,
@@ -217,38 +217,40 @@ export function MarqueeOffers({
           )}
 
           {/* Mini Header Arrows */}
-          <View style={{ flexDirection: 'row', gap: 4 }}>
+          <View style={{ flexDirection: 'row', gap: 6 }}>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="العرض السابق"
               onPress={scrollPrev}
               style={{
-                width: 30,
-                height: 30,
-                borderRadius: 15,
+                width: 32,
+                height: 32,
+                borderRadius: 16,
                 backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#FFFFFF',
                 borderWidth: 1.5,
                 borderColor: isDark ? 'rgba(255,255,255,0.15)' : C.action,
                 alignItems: 'center',
                 justifyContent: 'center',
+                elevation: 2,
               }}>
-              <Ionicons name="chevron-forward" size={15} color={C.action} />
+              <Ionicons name="chevron-forward" size={16} color={C.action} />
             </Pressable>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="العرض التالي"
               onPress={scrollNext}
               style={{
-                width: 30,
-                height: 30,
-                borderRadius: 15,
+                width: 32,
+                height: 32,
+                borderRadius: 16,
                 backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#FFFFFF',
                 borderWidth: 1.5,
                 borderColor: isDark ? 'rgba(255,255,255,0.15)' : C.action,
                 alignItems: 'center',
                 justifyContent: 'center',
+                elevation: 2,
               }}>
-              <Ionicons name="chevron-back" size={15} color={C.action} />
+              <Ionicons name="chevron-back" size={16} color={C.action} />
             </Pressable>
           </View>
         </View>
@@ -264,15 +266,21 @@ export function MarqueeOffers({
           scrollEventThrottle={16}
           decelerationRate="normal"
           contentContainerStyle={{
-            paddingHorizontal: 22,
+            paddingHorizontal: 16,
             gap: CARD_GAP,
             flexDirection: 'row-reverse',
             paddingVertical: 6,
           }}>
           {deals.map((p: Product, index: number) => {
             const inCart = getInCartQty(p.id);
-            const imgSrc = resolveProductImage(p);
-            const offerText = p.offerDescription || p.subtitle || 'ذبح وتنظيف فوري طازج على طلبك بأعلى معايير الجودة والنظافة';
+            const isOfferDiscount = Boolean(p.originalPrice && p.originalPrice > p.price);
+            const savingsAmount = isOfferDiscount ? Math.round(p.originalPrice! - p.price) : 0;
+            const savingsBadgeText = p.badge
+              ? p.badge
+              : isOfferDiscount
+              ? `وفر ${savingsAmount} ج.م`
+              : 'عرض خاص';
+            const offerText = p.offerDescription?.trim() || p.subtitle?.trim() || 'طازج ومجهز يومياً بأعلى جودة';
 
             return (
               <Pressable
@@ -285,69 +293,80 @@ export function MarqueeOffers({
                 style={{
                   width: CARD_WIDTH,
                   height: CARD_HEIGHT,
-                  borderRadius: 24,
-                  backgroundColor: isDark ? '#1E293B' : '#FFFFFF',
-                  borderWidth: 2,
-                  borderColor: isDark ? 'rgba(23, 74, 156, 0.65)' : C.action,
-                  flexDirection: 'row-reverse',
+                  borderRadius: 22,
+                  backgroundColor: isDark ? '#162231' : '#FFFFFF',
+                  borderWidth: 1.5,
+                  borderColor: isDark ? 'rgba(59, 130, 246, 0.35)' : 'rgba(23, 74, 156, 0.16)',
+                  borderTopColor: isDark ? 'rgba(96, 165, 250, 0.5)' : 'rgba(23, 74, 156, 0.30)',
+                  flexDirection: 'row',
                   alignItems: 'center',
-                  padding: 12,
+                  padding: 11,
                   gap: 12,
-                  elevation: 6,
-                  shadowColor: C.action,
-                  shadowOpacity: 0.16,
-                  shadowRadius: 14,
-                  shadowOffset: { width: 0, height: 6 },
+                  elevation: 4,
+                  shadowColor: isDark ? '#000000' : '#0E2F65',
+                  shadowOpacity: isDark ? 0.35 : 0.07,
+                  shadowRadius: 10,
+                  shadowOffset: { width: 0, height: 4 },
                   ...(Platform.OS === 'web'
                     ? {
-                        boxShadow: '0 8px 24px rgba(23,74,156,0.14)',
+                        boxShadow: isDark
+                          ? '0 6px 18px rgba(0,0,0,0.3)'
+                          : '0 6px 18px rgba(23,74,156,0.07)',
                       }
                     : {}),
                 }}>
-                {/* Right Side: Large Prominent Food Thumbnail with Royal Blue Badge */}
+                {/* 1. Product Image Frame (Studio Clean Light & Shadow) */}
                 <View
                   style={{
-                    width: 116,
-                    height: 144,
-                    borderRadius: 18,
+                    width: 124,
+                    height: 134,
+                    borderRadius: 16,
                     overflow: 'hidden',
-                    backgroundColor: C.surfaceAlt,
+                    backgroundColor: isDark ? '#172234' : '#FFFFFF',
+                    borderWidth: 1,
+                    borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
                     position: 'relative',
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: isDark ? 0.3 : 0.04,
+                    shadowRadius: 3,
+                    elevation: 2,
                   }}>
                   <FastImage
-                    source={imgSrc}
+                    source={getProductImageSource(p)}
+                    fallbackSource={images.chicken}
                     contentFit="cover"
                     style={{ width: '100%', height: '100%' }}
                   />
 
-                  {/* App Royal Blue Offer Badge Tag */}
+                  {/* Savings / Special Offer Badge */}
                   <View
                     style={{
                       position: 'absolute',
                       top: 6,
                       right: 6,
-                      backgroundColor: C.action,
+                      backgroundColor: isOfferDiscount ? '#DC2626' : C.action,
                       borderRadius: 8,
-                      paddingHorizontal: 6.5,
+                      paddingHorizontal: 7,
                       paddingVertical: 2.5,
                       elevation: 3,
                     }}>
                     <Txt style={{ color: '#FFFFFF', fontSize: 9.5, fontWeight: '900' }}>
-                      {p.badge || 'عرض خاص'}
+                      {savingsBadgeText}
                     </Txt>
                   </View>
                 </View>
 
-                {/* Left Side: Rich Information, Price, Offer Description & Scale Assurance */}
+                {/* 2. Details Column (Title, Tag, Subtitle, Price & Button) */}
                 <View
                   style={{
                     flex: 1,
-                    height: 144,
+                    height: 134,
                     alignItems: 'flex-start',
                     justifyContent: 'space-between',
                   }}>
                   <View style={{ width: '100%' }}>
-                    {/* Category / Quality Pill Tag in Royal Blue */}
+                    {/* Category / Quality Tag */}
                     <View
                       style={{
                         backgroundColor: isDark ? 'rgba(23,74,156,0.25)' : 'rgba(23,74,156,0.08)',
@@ -357,7 +376,7 @@ export function MarqueeOffers({
                         alignSelf: 'flex-start',
                         marginBottom: 4,
                         borderWidth: 1,
-                        borderColor: isDark ? 'rgba(23,74,156,0.45)' : 'rgba(23,74,156,0.25)',
+                        borderColor: isDark ? 'rgba(23,74,156,0.45)' : 'rgba(23,74,156,0.20)',
                       }}>
                       <Txt
                         style={{
@@ -369,16 +388,18 @@ export function MarqueeOffers({
                           ? 'تتبيلة الشيف 🍢'
                           : p.category === 'فراخ'
                           ? 'طازج مزارع 🍗'
+                          : p.category === 'بط'
+                          ? 'بط بلدي فاخر 🦆'
                           : 'تجهيز فوري فاخر ✨'}
                       </Txt>
                     </View>
 
-                    {/* Product Name (Bold & Large) */}
+                    {/* Product Name */}
                     <Txt
                       numberOfLines={1}
                       style={{
                         fontFamily: 'Rubik_700Bold',
-                        fontSize: 15,
+                        fontSize: 15.5,
                         fontWeight: '900',
                         color: C.navy,
                         textAlign: 'right',
@@ -387,14 +408,14 @@ export function MarqueeOffers({
                       {p.name}
                     </Txt>
 
-                    {/* Multi-line Offer Description with ample height */}
+                    {/* Subtitle / Offer Description */}
                     <Txt
-                      numberOfLines={3}
+                      numberOfLines={1}
                       style={{
                         fontSize: 10.5,
-                        lineHeight: 15.5,
-                        color: isDark ? '#CBD5E1' : '#475569',
-                        marginTop: 4,
+                        lineHeight: 15,
+                        color: isDark ? '#94A3B8' : '#64748B',
+                        marginTop: 3,
                         textAlign: 'right',
                         width: '100%',
                       }}>
@@ -405,18 +426,32 @@ export function MarqueeOffers({
                   {/* Pricing Bar & Action Button */}
                   <View
                     style={{
-                      flexDirection: 'row-reverse',
+                      flexDirection: 'row',
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       width: '100%',
                       marginTop: 4,
                     }}>
+                    {/* Price and Original Price (Strikethrough) */}
                     <View style={{ alignItems: 'flex-start' }}>
-                      <Txt style={{ fontSize: 15, color: C.action, fontWeight: '900', textAlign: 'right' }}>
+                      <Txt style={{ fontSize: 16, color: C.action, fontWeight: '900', textAlign: 'right' }}>
                         {p.unit === 'للقطعة' && p.piecePrice ? `${p.piecePrice} ج.م` : `${p.price} ج.م`}
                       </Txt>
+                      {isOfferDiscount && (
+                        <Txt
+                          style={{
+                            fontSize: 10.5,
+                            color: C.muted,
+                            textDecorationLine: 'line-through',
+                            textAlign: 'right',
+                            marginTop: 1,
+                          }}>
+                          {`${p.originalPrice} ج.م`}
+                        </Txt>
+                      )}
                     </View>
 
+                    {/* Add to Cart Button (CLEAN SINGLE PLUS - NO DUPLICATE ++) */}
                     <Pressable
                       accessibilityRole="button"
                       accessibilityLabel={`إضافة ${p.name}`}
@@ -426,22 +461,26 @@ export function MarqueeOffers({
                         onAdd(p);
                       }}
                       style={{
-                        backgroundColor: inCart > 0 ? '#059669' : C.action,
-                        borderRadius: 10,
-                        paddingHorizontal: 11,
+                        backgroundColor: inCart > 0 ? '#15803D' : C.action,
+                        borderRadius: 11,
+                        paddingHorizontal: 12,
                         paddingVertical: 7,
-                        flexDirection: 'row-reverse',
+                        flexDirection: 'row',
                         alignItems: 'center',
                         gap: 4,
                         elevation: 2,
+                        shadowColor: inCart > 0 ? '#15803D' : C.action,
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowOpacity: 0.2,
+                        shadowRadius: 4,
                       }}>
                       <Ionicons
                         name={inCart > 0 ? 'checkmark' : 'add'}
-                        size={13}
+                        size={14}
                         color="#FFFFFF"
                       />
-                      <Txt style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '900' }}>
-                        {inCart > 0 ? `في السلة (${inCart})` : 'أضف +'}
+                      <Txt style={{ color: '#FFFFFF', fontSize: 11.5, fontWeight: '900' }}>
+                        {inCart > 0 ? `في السلة (${inCart})` : 'أضف'}
                       </Txt>
                     </Pressable>
                   </View>
@@ -450,78 +489,6 @@ export function MarqueeOffers({
             );
           })}
         </ScrollView>
-
-        {/* ── Overlay Floating Arrow Buttons (Mounted AFTER ScrollView to guarantee clicks) ── */}
-        <View
-          pointerEvents="box-none"
-          style={[
-            StyleSheet.absoluteFill,
-            {
-              justifyContent: 'center',
-              zIndex: 9999,
-              elevation: 12,
-            },
-          ]}>
-          {/* Left Arrow Button (التالي ◀) */}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="العرض التالي"
-            onPress={scrollNext}
-            style={({ pressed }) => ({
-              position: 'absolute',
-              left: 6,
-              top: '50%',
-              marginTop: -22,
-              width: 44,
-              height: 44,
-              borderRadius: 22,
-              backgroundColor: isDark ? '#1E293B' : '#FFFFFF',
-              borderWidth: 2,
-              borderColor: C.action,
-              alignItems: 'center',
-              justifyContent: 'center',
-              elevation: 10,
-              shadowColor: C.action,
-              shadowOpacity: 0.35,
-              shadowRadius: 10,
-              shadowOffset: { width: 0, height: 4 },
-              transform: [{ scale: pressed ? 0.92 : 1 }],
-              zIndex: 10000,
-              cursor: 'pointer',
-            })}>
-            <Ionicons name="chevron-back" size={22} color={C.action} />
-          </Pressable>
-
-          {/* Right Arrow Button (السابق ▶) */}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="العرض السابق"
-            onPress={scrollPrev}
-            style={({ pressed }) => ({
-              position: 'absolute',
-              right: 6,
-              top: '50%',
-              marginTop: -22,
-              width: 44,
-              height: 44,
-              borderRadius: 22,
-              backgroundColor: isDark ? '#1E293B' : '#FFFFFF',
-              borderWidth: 2,
-              borderColor: C.action,
-              alignItems: 'center',
-              justifyContent: 'center',
-              elevation: 10,
-              shadowColor: C.action,
-              shadowOpacity: 0.35,
-              shadowRadius: 10,
-              shadowOffset: { width: 0, height: 4 },
-              transform: [{ scale: pressed ? 0.92 : 1 }],
-              zIndex: 10000,
-              cursor: 'pointer',
-            })}>
-            <Ionicons name="chevron-forward" size={22} color={C.action} />
-          </Pressable>
-        </View>
       </View>
     </View>
   );
