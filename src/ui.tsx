@@ -13,12 +13,13 @@ export const FontScaleContext=createContext(1);
 export function displayUnit(unit:string=''):string{
   if(!unit)return 'كيلو';
   const clean=unit.trim();
-  if(clean==='للكيلو'||clean==='كيلو'||clean.toUpperCase()==='KILO')return 'كيلو';
-  if(clean==='للقطعة'||clean==='قطعة'||clean.toUpperCase()==='PIECE')return 'قطعة';
-  if(clean==='للجوز'||clean==='جوز'||clean.toUpperCase()==='PAIR')return 'جوز';
-  if(clean==='للطبق'||clean==='طبق'||clean.toUpperCase()==='PLATE')return 'طبق';
-  if(clean==='للطائر'||clean==='طائر'||clean.toUpperCase()==='BIRD')return 'طائر';
-  return clean.replace(/^لل?/,'')||clean;
+  if(/^(للكيلو|كيلو|الكيلو|بالكيلو|kilo)$/i.test(clean))return 'كيلو';
+  if(/^(للقطعة|قطعة|القطعة|بالقطعة|piece)$/i.test(clean))return 'قطعة';
+  if(/^(للجوز|جوز|الجوز|بالجوز|pair)$/i.test(clean))return 'جوز';
+  if(/^(للطبق|طبق|الطبق|بالطبق|plate)$/i.test(clean))return 'طبق';
+  if(/^(للطائر|طائر|الطائر|بالطائر|bird)$/i.test(clean))return 'طائر';
+  if(/^(للكرتونة|كرتونة|كرتونه|الكرتونة|الكرتونه|بالكرتونة|carton)$/i.test(clean))return 'كرتونة';
+  return clean.replace(/^(لل|بال|ال|ل)/,'')||clean;
 }
 
 export function formatItemNaturalTitle(item: { name?: string; quantity?: number | string; unit?: string; size?: string }): string {
@@ -42,15 +43,15 @@ export function formatItemNaturalTitle(item: { name?: string; quantity?: number 
   }
 
   // 2. Pairs (للجوز, جوز, pair) -> "1.5 جوز حمام"
-  if (/^(للجوز|جوز|pair)$/i.test(rawUnit)) {
+  if (/^(للجوز|جوز|الجوز|بالجوز|pair)$/i.test(rawUnit)) {
     return `${qty} جوز ${cleanName}${sizeSuffix}`;
   }
 
   // 3. Cartons / Trays (كرتونة, للكرتونة, طبق, للطبق) -> "1.5 كرتونة بيض" / "1.5 طبق كبد وقوانص"
-  if (/^(كرتونة|كرتونه|للكرتونة|للكرتونه|carton)$/i.test(rawUnit)) {
+  if (/^(الكرتونة|كرتونة|كرتونه|للكرتونة|للكرتونه|بالكرتونة|carton)$/i.test(rawUnit)) {
     return `${qty} كرتونة ${cleanName}${sizeSuffix}`;
   }
-  if (/^(للطبق|طبق|plate)$/i.test(rawUnit)) {
+  if (/^(الطبق|للطبق|طبق|بالطبق|plate)$/i.test(rawUnit)) {
     return `${qty} طبق ${cleanName}${sizeSuffix}`;
   }
 
