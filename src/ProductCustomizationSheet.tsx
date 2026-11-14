@@ -19,9 +19,17 @@ import { cloudImages } from './cloudAssets';
 const money = (n: number) => `${Math.round(n)} ج.م`;
 
 export function ProductCustomizationSheet({ product, onAdd, initialLine }: any) {
+  const isPieceOnly = product.allowSellingByKilo === false;
+  const getInitialUnit = () => {
+    if (initialLine?.unit) return initialLine.unit;
+    if (isPieceOnly) {
+      return product.unit && !/كيلو/i.test(product.unit) ? product.unit : 'للقطعة';
+    }
+    return product.unit || 'للكيلو';
+  };
   const [qty, setQty] = useState<number>(initialLine?.quantity ?? 1);
   const [size, setSize] = useState<string>(initialLine?.size || product.sizes?.[0] || 'عادي');
-  const [unit, setUnit] = useState<string>(initialLine?.unit || product.unit);
+  const [unit, setUnit] = useState<string>(getInitialUnit());
   const [selectedPrep, setSelectedPrep] = useState<string>('');
   const [selectedSubOption, setSelectedSubOption] = useState<string>(initialLine?.selectedSubOption || '');
   const [note, setNote] = useState<string>(initialLine?.note || '');
@@ -77,7 +85,7 @@ export function ProductCustomizationSheet({ product, onAdd, initialLine }: any) 
     setSelectedPrep(matched?.type || first?.type || '');
     setSelectedSubOption(matchedSub || matched?.subOptions?.[0] || first?.subOptions?.[0] || '');
     setQty(initialLine?.quantity ?? 1);
-    setUnit(initialLine?.unit || product.unit);
+    setUnit(getInitialUnit());
     setSize(initialLine?.size || product.sizes?.[0] || 'عادي');
     setNote(initialLine?.note || '');
   }, [product.id, initialLine?.id]);
@@ -86,7 +94,7 @@ export function ProductCustomizationSheet({ product, onAdd, initialLine }: any) 
   const selectedOption = activeGroup?.subOptions?.find((option: string) => option === selectedSubOption) || '';
   const selectedLabel = selectedOption.split(' — ')[0] || selectedSubOption;
   const selection = selectedPrep ? [activeGroup?.label || selectedPrep, ...(selectedLabel ? [selectedLabel] : [])] : [];
-  const unitPrice = unit === 'للقطعة' && product.piecePrice ? product.piecePrice : product.price;
+  const unitPrice = (unit === 'للقطعة' || isPieceOnly) && product.piecePrice ? product.piecePrice : product.price;
   const productImgSource = getProductImageSource(product);
 
   return (

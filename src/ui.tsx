@@ -37,9 +37,15 @@ export function formatItemNaturalTitle(item: { name?: string; quantity?: number 
   const isDefaultSize = !rawSize || /^(عادي|standard|الافتراضي)$/i.test(rawSize);
   const sizeSuffix = !isDefaultSize ? ` (${rawSize})` : '';
 
-  // 1. Kilo units (للكيلو, كيلو, كجم, ك, KILO, kilo) -> "1.5 كيلو شيش"
-  if (/^(للكيلو|كيلو|كجم|ك|kilo)$/i.test(rawUnit)) {
-    return `${qty} كيلو ${cleanName}${sizeSuffix}`;
+  // 1. Birds / Live poultry / Items with bird sizes (صغير, وسط, فوق الوسط, كبير)
+  // For live poultry or items with a specific bird size, they are NEVER measured in "كيلو" - they are whole birds/heads!
+  // e.g. "5 بلدي حي (صغير)", "1 أبيض حي (فوق الوسط)"
+  const isBirdWithSize = !isDefaultSize && /^(صغير|وسط|فوق الوسط|كبير)$/i.test(rawSize);
+  const isLivePoultry = /حي|طائر كامل/.test(cleanName);
+  const isWholeBird = /^(للطائر|طائر|دجاجة|فرخة|بطة|bird)$/i.test(rawUnit);
+
+  if (isLivePoultry || isBirdWithSize || isWholeBird) {
+    return `${qty} ${cleanName}${sizeSuffix}`;
   }
 
   // 2. Pairs (للجوز, جوز, pair) -> "1.5 جوز حمام"
@@ -55,20 +61,20 @@ export function formatItemNaturalTitle(item: { name?: string; quantity?: number 
     return `${qty} طبق ${cleanName}${sizeSuffix}`;
   }
 
-  // 4. Count / Pieces / Items (للقطعة, قطعة, عدد, دبابيس) -> "عدد 8 دبوس" / "1.5 قطعة"
+  // 4. Count / Pieces / Items (للقطعة, قطعة, قطع, عدد, حبة, piece)
   if (/^(للقطعة|قطعة|قطع|عدد|حبة|piece)$/i.test(rawUnit)) {
     const isFractional = !Number.isInteger(numQty);
-    return isFractional ? `${qty} قطعة ${cleanName}${sizeSuffix}` : `عدد ${qty} ${cleanName}${sizeSuffix}`;
+    return isFractional ? `${qty} قطعة ${cleanName}${sizeSuffix}` : `${qty} ${cleanName}${sizeSuffix}`;
   }
 
-  // 5. Birds / Chickens / Ducks (للطائر, طائر, دجاجة, فرخة, بطة) -> "عدد 1 فرخة بيضاء"
-  if (/^(للطائر|طائر|دجاجة|فرخة|بطة|bird)$/i.test(rawUnit)) {
-    return `عدد ${qty} ${cleanName}${sizeSuffix}`;
+  // 5. Kilo units (للكيلو, كيلو, كجم, ك, KILO, kilo) -> "1.5 كيلو شيش"
+  if (/^(للكيلو|كيلو|كجم|ك|kilo)$/i.test(rawUnit)) {
+    return `${qty} كيلو ${cleanName}${sizeSuffix}`;
   }
 
   // Fallback: If unit is empty or contains عدد
   if (!rawUnit || /عدد/i.test(rawUnit)) {
-    return `عدد ${qty} ${cleanName}${sizeSuffix}`;
+    return `${qty} ${cleanName}${sizeSuffix}`;
   }
 
   return `${qty} ${displayUnit(rawUnit)} ${cleanName}${sizeSuffix}`;

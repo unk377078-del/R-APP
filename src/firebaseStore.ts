@@ -87,7 +87,11 @@ export function mapFirestoreProduct(id: string, data: Record<string, unknown>, p
     piecePrice: numberOr(data.pricePerPiece, numberOr(data.piecePrice, previous?.piecePrice ?? 0)) || undefined,
     originalPrice: numberOr(data.originalPrice, previous?.originalPrice ?? 0) || undefined,
     originalPiecePrice: numberOr(data.originalPiecePrice, previous?.originalPiecePrice ?? 0) || undefined,
-    unit: typeof data.unit === 'string' && data.unit.trim() ? data.unit.trim() : (unitLabels[unitKey] || previous?.unit || 'كيلو'),
+    unit: (() => {
+      const allowK = typeof data.allowSellingByKilo === 'boolean' ? data.allowSellingByKilo : (unitKey === 'KILO' || stringArray(data.supportedUnits).includes('KILO'));
+      const u = typeof data.unit === 'string' && data.unit.trim() ? data.unit.trim() : (unitLabels[unitKey] || previous?.unit || 'كيلو');
+      return (!allowK && /^(للكيلو|كيلو|كجم|ك)$/i.test(u)) ? 'للقطعة' : u;
+    })(),
     emoji: previous?.emoji || '🍗',
     image: (typeof data.image === 'string' && data.image) ? data.image : (imageNames[imageName] || (imageName ? imageName : undefined) || previous?.image || 'chicken'),
     imageUri: typeof data.imageUri === 'string' ? data.imageUri : previous?.imageUri,
@@ -236,6 +240,31 @@ export function subscribeAppSettings(onChange: (settings: {
 
 function orderItemToFirestore(item: CartLine, categoryLabel?: string) {
   const category = Object.entries(categoryLabels).find(([, label]) => label === categoryLabel)?.[0] || categoryLabel || '';
+  const rawUnit = (item.unit || '').trim();
+  let unitKey = 'KILO';
+
+  if (/^(للقطعة|قطعة|قطع|بالقطعة|عدد|حبة|piece)$/i.test(rawUnit)) {
+    unitKey = 'PIECE';
+  } else if (/^(للطائر|طائر|دجاجة|فرخة|بطة|أرنب|ارنب|bird)$/i.test(rawUnit)) {
+    unitKey = 'PIECE';
+  } else if (/^(للجوز|جوز|الجوز|بالجوز|pair)$/i.test(rawUnit)) {
+    unitKey = 'PAIR';
+  } else if (/^(للطبق|طبق|الطبق|بالطبق|plate|كرتونة|كرتونه|الكرتونة|للكرتونة|carton)$/i.test(rawUnit)) {
+    unitKey = 'PLATE';
+  } else if (/^(للكيلو|كيلو|كجم|ك|kilo)$/i.test(rawUnit)) {
+    if (/حي|طائر/.test(item.name || '') && item.size && !/^(عادي|standard|الافتراضي)$/i.test(item.size)) {
+      unitKey = 'PIECE';
+    } else {
+      unitKey = 'KILO';
+    }
+  } else {
+    if (/حي|طائر/.test(item.name || '') || (item.size && !/^(عادي|standard|الافتراضي)$/i.test(item.size))) {
+      unitKey = 'PIECE';
+    } else {
+      unitKey = Object.entries(unitLabels).find(([, label]) => label === item.unit)?.[0] || 'KILO';
+    }
+  }
+
   return {
     cartItemId: item.id,
     productId: item.productId,
@@ -243,7 +272,7 @@ function orderItemToFirestore(item: CartLine, categoryLabel?: string) {
     productCategory: category,
     price: item.price,
     quantity: item.quantity,
-    unit: Object.entries(unitLabels).find(([, label]) => label === item.unit)?.[0] || 'KILO',
+    unit: unitKey,
     selectedSize: item.size || '',
     selectedPrep: item.selectedPrep || item.options?.[0] || '',
     selectedSubOption: item.selectedSubOption || item.options?.[1] || '',
@@ -559,11 +588,20 @@ export function subscribeOrders(ownerUid: string, isAdmin: boolean, onOrders: (o
 
       const items = Array.isArray(data.items) ? data.items.flatMap((raw: any, index: number): CartLine[] => {
         if (!raw || typeof raw !== 'object') return [];
+        const rawUnitUpper = String(raw.unit || '').toUpperCase();
+        let itemUnit = unitLabels[rawUnitUpper] || raw.unit || 'للكيلو';
+        const pName = String(raw.productName || raw.name || '');
+        const pSize = String(raw.selectedSize || '');
+        const hasBirdSize = pSize && !/^(عادي|standard|الافتراضي)$/i.test(pSize);
+        const isLiveOrBird = /حي|طائر كامل/.test(pName);
+        if ((hasBirdSize || isLiveOrBird) && (itemUnit === 'للكيلو' || rawUnitUpper === 'KILO')) {
+          itemUnit = 'للقطعة';
+        }
         return [{
           id: String(raw.cartItemId || `${item.id}-${index}`), productId: String(raw.productId || ''),
-          name: String(raw.productName || raw.name || 'منتج'), price: numberOr(raw.price, 0),
-          unit: unitLabels[String(raw.unit || '').toUpperCase()] || 'للكيلو', emoji: '',
-          quantity: numberOr(raw.quantity, 1), size: String(raw.selectedSize || ''),
+          name: pName || 'منتج', price: numberOr(raw.price, 0),
+          unit: itemUnit, emoji: '',
+          quantity: numberOr(raw.quantity, 1), size: pSize,
           options: [raw.selectedPrep, raw.selectedSubOption].filter((x): x is string => typeof x === 'string' && Boolean(x)),
           selectedPrep: typeof raw.selectedPrep === 'string' ? raw.selectedPrep : '',
           selectedSubOption: typeof raw.selectedSubOption === 'string' ? raw.selectedSubOption : '',

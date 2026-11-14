@@ -1478,7 +1478,7 @@ ${itemsSummary}
       {/* Expanded Items & Breakdown */}
       {expanded && (
         <View style={{ borderTopWidth: 1, borderColor: C.line, paddingTop: 10, marginTop: 8 }}>
-          <Txt style={{ fontWeight: '900', marginBottom: 6, textAlign: 'right' }}>أصناف الطلب (${order.items?.length || 0}):</Txt>
+          <Txt style={{ fontWeight: '900', marginBottom: 6, textAlign: 'right' }}>أصناف الطلب ({order.items?.length || 0}):</Txt>
           {order.items.map((item: any, index: number) => (
             <View key={item.id || index} style={{ paddingVertical: 7, borderBottomWidth: 1, borderColor: C.line }}>
               <Txt style={{ fontWeight: '800', textAlign: 'right', fontSize: 14 }}>
