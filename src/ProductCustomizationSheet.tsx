@@ -35,8 +35,18 @@ export function ProductCustomizationSheet({ product, onAdd, initialLine }: any) 
   const [note, setNote] = useState<string>(initialLine?.note || '');
   const [prepInfo, setPrepInfo] = useState<{ label: string; description: string } | null>(null);
 
-  const isWholeLivingBird = /حي|طائر كامل/.test(product.name) && product.category === 'فراخ';
-  const step = product.allowHalfUnit !== false && !isWholeLivingBird ? 0.5 : 1;
+  const isPieceUnit = /^(للقطعة|قطعة|القطعة|بالقطعة|فرخة|طائر|دجاجة|بطة|أرنب|ارنب|عدد|حبة|صينية|piece)$/i.test(unit) || unit === 'للقطعة';
+  const isPairUnit = /^(للجوز|جوز|الجوز|بالجوز|pair)$/i.test(unit);
+  const isWholeLivingBird = /حي|طائر كامل/.test(product.name);
+
+  // Piece items are strictly integer-only (1, 2, 3...). Pairs of pigeons & kilos can allow 0.5 increments.
+  const allowHalf = isPairUnit
+    ? (product.allowHalfUnit !== false)
+    : (isPieceUnit || isWholeLivingBird)
+    ? false
+    : (product.allowHalfUnit !== false);
+
+  const step = allowHalf ? 0.5 : 1;
 
   const defaults =
     product.category === 'فراخ' || product.category === 'بط'
@@ -178,7 +188,7 @@ export function ProductCustomizationSheet({ product, onAdd, initialLine }: any) 
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="تقليل الكمية"
-            onPress={() => setQty((x) => Math.max(step, Math.round((x - step) * 2) / 2))}
+            onPress={() => setQty((x) => allowHalf ? Math.max(step, Math.round((x - step) * 2) / 2) : Math.max(1, Math.round(x - 1)))}
             style={{
               width: 44,
               height: 44,
@@ -196,7 +206,17 @@ export function ProductCustomizationSheet({ product, onAdd, initialLine }: any) 
             <Txt style={s.section}>طريقة البيع</Txt>
             <View style={[s.card, { flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: 12 }]}>
               {['للكيلو', 'للقطعة'].map((x: string) => (
-                <Chip key={x} label={x === 'للكيلو' ? 'بالكيلو' : 'بالقطعة'} selected={unit === x} onPress={() => { setUnit(x); setQty(1); }} />
+                <Chip
+                  key={x}
+                  label={x === 'للكيلو' ? 'بالكيلو' : 'بالقطعة'}
+                  selected={unit === x}
+                  onPress={() => {
+                    setUnit(x);
+                    if (x === 'للقطعة') {
+                      setQty((q) => Math.max(1, Math.round(q)));
+                    }
+                  }}
+                />
               ))}
             </View>
           </>
@@ -428,7 +448,7 @@ export function ProductCustomizationSheet({ product, onAdd, initialLine }: any) 
           ) : (
             <Button
               title={initialLine ? 'حفظ التعديلات' : 'أضف للسلة'}
-              onPress={() => onAdd(qty, size, selection, note, unit, selectedPrep, selectedSubOption)}
+              onPress={() => onAdd(allowHalf ? qty : Math.max(1, Math.round(qty)), size, selection, note, unit, selectedPrep, selectedSubOption)}
             />
           )}
         </View>
