@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>طلب حذف الحساب والبيانات | طيور الرشيدي</title>
+  <style>
+    :root {
+      --primary: #0E2F65;
+      --primary-hover: #0a224a;
+      --green: #15803D;
+      --bg: #F8FAFC;
+      --surface: #FFFFFF;
+      --text: #1E293B;
+      --muted: #64748B;
+      --border: #E2E8F0;
+      --danger: #DC2626;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.8;
+      margin: 0;
+      padding: 24px 16px;
+    }
+    .container {
+      max-width: 650px;
+      margin: 0 auto;
+      background: var(--surface);
+      border-radius: 20px;
+      padding: 32px 28px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      border: 1px solid var(--border);
+    }
+    .header {
+      text-align: center;
+      border-bottom: 2px solid #F1F5F9;
+      padding-bottom: 20px;
+      margin-bottom: 24px;
+    }
+    .header h1 {
+      color: var(--primary);
+      margin: 0 0 8px 0;
+      font-size: 24px;
+      font-weight: 900;
+    }
+    .header p {
+      color: var(--muted);
+      margin: 0;
+      font-size: 14px;
+    }
+    .notice {
+      background: #EFF6FF;
+      border-right: 4px solid var(--primary);
+      padding: 14px 18px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+      font-size: 14px;
+    }
+    .notice strong { color: var(--primary); }
+    .data-summary {
+      background: #F8FAFC;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      font-size: 13.5px;
+    }
+    .data-summary h3 {
+      margin-top: 0;
+      margin-bottom: 8px;
+      font-size: 15px;
+      color: var(--primary);
+    }
+    .data-summary ul {
+      margin: 0;
+      padding-right: 20px;
+    }
+    .data-summary li { margin-bottom: 4px; }
+    .form-group {
+      margin-bottom: 18px;
+    }
+    label {
+      display: block;
+      font-weight: 700;
+      font-size: 14px;
+      margin-bottom: 6px;
+      color: var(--text);
+    }
+    .required { color: var(--danger); }
+    input, textarea {
+      width: 100%;
+      padding: 13px 16px;
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      font-size: 15px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus, textarea:focus {
+      border-color: var(--primary);
+    }
+    textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+    .btn-submit {
+      width: 100%;
+      background: var(--danger);
+      color: white;
+      border: none;
+      padding: 14px;
+      font-size: 16px;
+      font-weight: 800;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      margin-top: 10px;
+    }
+    .btn-submit:hover { opacity: 0.92; }
+    .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+    .wa-card {
+      margin-top: 24px;
+      background: #F0FDF4;
+      border: 1px solid #BBF7D0;
+      border-radius: 14px;
+      padding: 16px;
+      text-align: center;
+    }
+    .wa-btn {
+      display: inline-block;
+      margin-top: 10px;
+      background: #25D366;
+      color: white;
+      text-decoration: none;
+      padding: 11px 22px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 14px;
+    }
+    #status {
+      display: none;
+      margin-top: 20px;
+      padding: 16px;
+      border-radius: 12px;
+      text-align: center;
+      font-weight: 700;
+    }
+    .success {
+      background: #DCFCE7;
+      color: #166534;
+      border: 1px solid #86EFAC;
+    }
+    .footer-links {
+      margin-top: 28px;
+      text-align: center;
+      font-size: 13px;
+    }
+    .footer-links a {
+      color: var(--primary);
+      text-decoration: none;
+      margin: 0 10px;
+      font-weight: 700;
+    }
+    .footer-links a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>طلب حذف الحساب والبيانات</h1>
+      <p>تطبيق طيور الرشيدي — لمنتجات الدواجن الطازجة</p>
+    </div>
+
+    <div class="notice">
+      <strong>تنبيه هام:</strong> يتيح لك تطبيق "طيور الرشيدي" حذف حسابك وكافة البيانات المرتبطة به نهائياً. يتم التحقق من ملكية رقم الهاتف وإتمام الحذف خلال <strong>24 إلى 48 ساعة</strong> من تاريخ تقديم الطلب.
+    </div>
+
+    <div class="data-summary">
+      <h3>البيانات التي سيتم حذفها نهائياً:</h3>
+      <ul>
+        <li>الملف الشخصي والاسم ورقم الهاتف والبريد الإلكتروني.</li>
+        <li>العناوين الجغرافية المحفوظة وبيانات التوصيل.</li>
+        <li>رصيد نقاط الولاء والمكافآت والكوبونات المرتبطة بالحساب.</li>
+      </ul>
+      <h3 style="margin-top: 12px;">بيانات تخضع للاحتفاظ القانوني:</h3>
+      <p style="margin: 0; color: var(--muted);">
+        يتم الاحتفاظ ببيانات الفواتير والعمليات المحاسبية فقط للأغراض الضريبية والقانونية مع إزالة وإخفاء أي هوية أو أرقام هواتف شخصية منها (Anonymized Data).
+      </p>
+    </div>
+
+    <form id="deleteForm">
+      <div class="form-group">
+        <label for="phone">رقم الهاتف المسجل في التطبيق <span class="required">* (إجباري)</span></label>
+        <input type="tel" id="phone" name="phone" placeholder="مثال: 01012345678" required dir="ltr" style="text-align: right;">
+      </div>
+
+      <div class="form-group">
+        <label for="name">الاسم المسجل (اختياري)</label>
+        <input type="text" id="name" name="name" placeholder="مثال: محمد أحمد">
+      </div>
+
+      <div class="form-group">
+        <label for="reason">سبب الحذف (اختياري)</label>
+        <textarea id="reason" name="reason" placeholder="أخبرنا بالسبب لتحسين خدماتنا إن رغبت في ذلك..."></textarea>
+      </div>
+
+      <button type="submit" id="submitBtn" class="btn-submit">تأكيد وإرسال طلب حذف الحساب</button>
+    </form>
+
+    <div id="status"></div>
+
+    <div class="wa-card">
+      <div style="font-weight: 800; color: #166534; font-size: 15px;">💬 تواصل مباشر وسريع</div>
+      <p style="margin: 4px 0 0 0; font-size: 13px; color: #374151;">
+        يمكنك أيضاً إرسال طلب الحذف مباشرة إلى خدمة العملاء عبر واتساب:
+      </p>
+      <a id="directWa" href="https://wa.me/201223381405?text=%D8%B7%D9%84%D8%A8%20%D8%AD%D8%B0%D9%81%20%D8%AD%D8%B3%D8%A7%D8%A8%20%D9%85%D9%86%20%D8%AA%D8%B7%D8%A8%D9%8A%D9%82%20%D8%B7%D9%8A%D9%88%D8%B1%20%D8%A7%D9%84%D8%B1%D8%B4%D9%8A%D8%AF%D9%8A" target="_blank" class="wa-btn">
+        مراسلة خدمة العملاء عبر واتساب (01223381405)
+      </a>
+    </div>
+
+    <div class="footer-links">
+      <a href="privacy-policy.html">سياسة الخصوصية</a>
+      <span>•</span>
+      <a href="https://wa.me/201223381405">اتصل بنا</a>
+    </div>
+  </div>
+
+  <!-- Firebase App & Firestore SDKs for recording the request -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAuA4k2eloSG9MuoKCb8sAfuJf7GFWFvXo",
+      authDomain: "al-rashidi-poultry.firebaseapp.com",
+      projectId: "al-rashidi-poultry",
+      storageBucket: "al-rashidi-poultry.firebasestorage.app",
+      messagingSenderId: "725578026883",
+      appId: "1:725578026883:web:08bf9a41da268c8b7d70b6"
+    };
+
+    let db = null;
+    try {
+      if (typeof firebase !== 'undefined') {
+        firebase.initializeApp(firebaseConfig);
+        db = firebase.firestore();
+      }
+    } catch (e) {
+      console.warn('Firebase init:', e);
+    }
+
+    const form = document.getElementById('deleteForm');
+    const statusDiv = document.getElementById('status');
+    const submitBtn = document.getElementById('submitBtn');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const phone = document.getElementById('phone').value.trim();
+      const name = document.getElementById('name').value.trim();
+      const reason = document.getElementById('reason').value.trim();
+
+      if (!phone) {
+        alert('يرجى إدخال رقم الهاتف المسجل.');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'جارٍ إرسال الطلب...';
+
+      const requestData = {
+        phone: phone,
+        name: name || 'بدون اسم',
+        reason: reason || 'لا يوجد سبب محدد',
+        status: 'PENDING',
+        createdAt: new Date().toISOString(),
+        timestamp: Date.now(),
+        source: 'web_form'
+      };
+
+      try {
+        if (db) {
+          await db.collection('account_deletion_requests').add(requestData);
+        }
+      } catch (err) {
+        console.warn('Firestore write warning:', err);
+      }
+
+      statusDiv.className = 'success';
+      statusDiv.style.display = 'block';
+      statusDiv.innerHTML = `
+        <div style="font-size: 18px; margin-bottom: 6px;">✅ تم استلام طلب الحذف بنجاح!</div>
+        <div style="font-weight: normal; font-size: 14px;">
+          رقم الهاتف: <strong>${phone}</strong><br>
+          سيتم فحص طلبك ومراجعة ملكية الحساب وحذف كافة البيانات المرتبطة به نهائياً خلال 24 - 48 ساعة.
+        </div>
+      `;
+
+      form.style.display = 'none';
+
+      // Update WhatsApp link with the submitted details
+      const waMsg = encodeURIComponent(`طلب حذف حساب من تطبيق طيور الرشيدي:\nرقم الهاتف: ${phone}\nالاسم: ${name || 'غير محدد'}\nالسبب: ${reason || 'لا يوجد'}`);
+      document.getElementById('directWa').href = `https://wa.me/201223381405?text=${waMsg}`;
+    });
+  </script>
+</body>
+</html>
