@@ -16,12 +16,14 @@
     "ios": {
       "bundleIdentifier": "com.alrashidi.market",
       "buildNumber": "1",
-      "supportsTablet": true,
+      "icon": "./assets/ios_icon_1024x1024.png",
+      "supportsTablet": false,
       "supportsRTL": true,
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "نستخدم موقعك لتعبئة عنوان التوصيل بدقة.",
-        "NSPhotoLibraryUsageDescription": "نستخدم الوصول للصور لتمكين إدارة المتجر من رفع صور المنتجات والبانرات.",
-        "NSCameraUsageDescription": "نستخدم الكاميرا لالتقاط صور المنتجات والعروض الطازجة."
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "نستخدم موقعك الجغرافي لتحديد أقرب فرع وعنوان التوصيل بدقة لتسهيل استلام الطلبات طازجة.",
+        "NSPhotoLibraryUsageDescription": "نستخدم الوصول إلى الصور لتمكينك من اختيار وتحديث صور الحساب والمنتجات والعروض.",
+        "NSCameraUsageDescription": "نستخدم الكاميرا لالتقاط صور المنتجات والعروض الطازجة وإضافتها مباشرة."
       }
     },
     "android": {

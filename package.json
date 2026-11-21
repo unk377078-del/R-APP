@@ -1,6 +1,6 @@
 {
   "name": "rashidi-market",
-  "version": "1.0.0",
+  "version": "1.1.8",
   "private": true,
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
@@ -10,7 +10,9 @@
     "web": "expo start --web",
     "test": "node test-suite/run-tests.cjs && node test-suite/simulate-flows.cjs && node test-suite/order-sorting-alert.test.cjs && node test-suite/cloud-media.test.cjs",
     "build:preview": "eas build --platform android --profile preview",
-    "build:production": "eas build --platform android --profile production"
+    "build:production": "eas build --platform android --profile production",
+    "build:ios": "eas build --platform ios --profile production",
+    "build:ios:preview": "eas build --platform ios --profile preview"
   },
   "dependencies": {
     "@expo-google-fonts/aref-ruqaa": "^0.4.1",

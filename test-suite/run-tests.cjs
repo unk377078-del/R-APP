@@ -39,7 +39,7 @@ const appJson = JSON.parse(fs.readFileSync(path.join(__dirname, '../app.json'), 
 const expo = appJson.expo;
 assert(expo.name === 'طيور الرشيدي' || expo.name === 'الرشيدي ماركت', 'App name is set correctly');
 assert(expo.slug === 'rashidi-market' || expo.slug === 'ahmeedsayed', 'Slug is set');
-assert(expo.version === '1.0.0', 'Version is 1.0.0');
+assert(expo.version && /^\d+\.\d+\.\d+$/.test(expo.version), `Version is valid semver (Actual: ${expo.version})`);
 assert(expo.ios && expo.ios.bundleIdentifier === 'com.alrashidi.market', 'iOS bundleIdentifier is com.alrashidi.market');
 assert(expo.android && expo.android.package === 'com.alrashidi.market', 'Android package is com.alrashidi.market');
 assert(expo.android && expo.android.targetSdkVersion >= 34, `Target SDK is >= 34 (Actual: ${expo.android.targetSdkVersion})`);
